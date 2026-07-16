@@ -4,7 +4,7 @@ const deepLinkScheme = "tactiqcoach";
 
 module.exports = {
   name: "Tactiq Coach",
-  slug: "tactiq-mobile",
+  slug: "tactiq",
   version: "1.0.0",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
