@@ -1,26 +1,14 @@
-// Load environment variables with proper priority (system > .env)
-import "./scripts/load-env.js";
-import type { ExpoConfig } from "expo/config";
-
-// Production bundle identifiers — registered under Asha Labs
+// Plain JS config — used by EAS CLI (avoids TypeScript/ESM parsing issues)
 const bundleId = "com.ashalabs.tactiqcoach";
 const deepLinkScheme = "tactiqcoach";
 
-const env = {
-  appName: "Tactiq Coach",
-  appSlug: "tactiq-mobile",
-  scheme: deepLinkScheme,
-  iosBundleId: bundleId,
-  androidPackage: bundleId,
-};
-
-const config: ExpoConfig = {
-  name: env.appName,
-  slug: env.appSlug,
+module.exports = {
+  name: "Tactiq Coach",
+  slug: "tactiq-mobile",
   version: "1.0.0",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
-  scheme: env.scheme,
+  scheme: deepLinkScheme,
   userInterfaceStyle: "light",
   newArchEnabled: true,
   extra: {
@@ -31,7 +19,7 @@ const config: ExpoConfig = {
   owner: "asha-labs",
   ios: {
     supportsTablet: true,
-    bundleIdentifier: env.iosBundleId,
+    bundleIdentifier: bundleId,
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
     },
@@ -45,14 +33,14 @@ const config: ExpoConfig = {
     },
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
-    package: env.androidPackage,
+    package: bundleId,
     intentFilters: [
       {
         action: "VIEW",
         autoVerify: true,
         data: [
           {
-            scheme: env.scheme,
+            scheme: deepLinkScheme,
             host: "*",
           },
         ],
@@ -94,5 +82,3 @@ const config: ExpoConfig = {
     reactCompiler: true,
   },
 };
-
-export default config;
