@@ -33,12 +33,9 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "seyi@asha-labs.com",
-        "ascAppId": "",
-        "appleTeamId": ""
+        "appleId": "seyi@asha-labs.com"
       },
       "android": {
-        "serviceAccountKeyPath": "./google-play-service-account.json",
         "track": "internal"
       }
     }
