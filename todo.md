@@ -1,0 +1,22 @@
+# Project TODO
+
+- [x] Initialize the Expo mobile project for iOS and Android
+- [x] Audit the route structure and principal workflows in both attached web apps
+- [x] Identify the existing brand colors, typography, and logo treatment
+- [x] Document the simplified mobile information architecture and interface design
+- [x] Define shared data models for teams, players, assessments, matches, and match events
+- [x] Build a lightweight local data layer with persistent sample workspace data
+- [x] Build the Home screen with current focus, recent activity, and primary quick actions
+- [x] Build the Squad screen with team overview, player search, and player details
+- [x] Build the player assessment flow with simple skill ratings and coach notes
+- [x] Build the Match setup and live event capture flow optimized for one-handed use
+- [x] Build the Match summary with performance metrics, tactical insights, and next actions
+- [x] Build the Insights screen with player progress and team trends
+- [x] Add Settings and local data reset controls without introducing unnecessary account flows
+- [x] Apply the lighter emerald-led visual system and native iOS interaction patterns
+- [x] Generate and install a custom app icon while preserving the existing brand character
+- [x] Add haptic and visual feedback to primary interactions
+- [x] Add deterministic tests for the local data and core user workflows
+- [x] Run TypeScript, lint, and unit-test validation
+- [x] Review all buttons, navigation paths, empty states, and safe-area behavior
+- [x] Save the completed project checkpoint and provide App Store and Google Play release guidance
