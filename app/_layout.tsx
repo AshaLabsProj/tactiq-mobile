@@ -25,6 +25,8 @@ export default function RootLayout() {
             <Stack.Screen name="assessment" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
             <Stack.Screen name="match/setup" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
             <Stack.Screen name="match/live/[id]" options={{ gestureEnabled: false }} />
+            <Stack.Screen name="match/summary/[id]" />
+            <Stack.Screen name="player/[id]" />
             <Stack.Screen name="settings" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
           </Stack>
         </WorkspaceProvider>

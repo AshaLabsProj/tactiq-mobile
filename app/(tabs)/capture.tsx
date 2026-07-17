@@ -63,7 +63,7 @@ export default function CaptureScreen() {
           >
             <View style={styles.choiceTop}>
               <View style={[styles.choiceIcon, styles.matchIcon]}>
-                <MaterialIcons name="sports-soccer" size={30} color={palette.primaryDark} />
+                <MaterialIcons name="sports-soccer" size={28} color={palette.primaryDark} />
               </View>
               <MaterialIcons name="arrow-forward" size={24} color={palette.primaryDark} />
             </View>
@@ -89,7 +89,7 @@ export default function CaptureScreen() {
           >
             <View style={styles.choiceTop}>
               <View style={[styles.choiceIcon, styles.assessmentIcon]}>
-                <MaterialIcons name="fact-check" size={29} color="#8E5A0E" />
+                <MaterialIcons name="fact-check" size={28} color="#8E5A0E" />
               </View>
               <MaterialIcons name="arrow-forward" size={24} color="#8E5A0E" />
             </View>

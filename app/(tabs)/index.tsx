@@ -58,7 +58,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <ScreenContainer>
+    <ScreenContainer edges={["top", "bottom", "left", "right"]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={mobileStyles.screenContent}
@@ -97,6 +97,7 @@ export default function HomeScreen() {
           <AppButton
             label={nextMatch ? "Open match" : "Set up match"}
             icon="arrow-forward"
+            variant="secondary"
             onPress={openMatch}
           />
         </AppCard>
@@ -239,7 +240,7 @@ const styles = StyleSheet.create({
   quickTitle: { color: palette.ink, fontSize: 17, lineHeight: 22, fontWeight: "700" },
   quickBody: { color: palette.muted, fontSize: 13, lineHeight: 18 },
   activityCard: { padding: 0, overflow: "hidden" },
-  activityRow: { minHeight: 72, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, gap: 12 },
+  activityRow: { minHeight: 72, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 4, gap: 12 },
   activityIcon: { width: 38, height: 38, borderRadius: 13, backgroundColor: palette.primarySoft, alignItems: "center", justifyContent: "center" },
   activityCopy: { flex: 1 },
   activityTitle: { color: palette.ink, fontSize: 15, lineHeight: 20, fontWeight: "700" },
