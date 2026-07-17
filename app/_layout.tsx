@@ -23,6 +23,7 @@ export default function RootLayout() {
           >
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="assessment" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
+            <Stack.Screen name="assessment-qa" options={{ presentation: "modal", animation: "slide_from_bottom", gestureEnabled: true }} />
             <Stack.Screen name="match/setup" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
             <Stack.Screen name="match/live/[id]" options={{ gestureEnabled: false }} />
             <Stack.Screen name="match/summary/[id]" />

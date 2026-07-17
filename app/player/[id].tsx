@@ -1,6 +1,6 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router, useLocalSearchParams } from "expo-router";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Share, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import {
   AppButton,
@@ -25,12 +25,56 @@ import { SKILL_LABELS, type SkillKey } from "@/types/models";
 
 const SKILL_KEYS = Object.keys(SKILL_LABELS) as SkillKey[];
 
+// ─── Skill key shorthand mapping ─────────────────────────────────────────────
+// Payload format: {n, p?, t?, d, r:{bc,pa,re,dr,de,dm}, no?, cn?}
+const SKILL_SHORT: Record<SkillKey, string> = {
+  ballControl:    "bc",
+  passing:        "pa",
+  receiving:      "re",
+  dribbling:      "dr",
+  defending:      "de",
+  decisionMaking: "dm",
+};
+
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat(undefined, {
     month: "short",
     day: "numeric",
     year: "numeric",
   }).format(new Date(value));
+}
+
+/**
+ * Encode a player assessment as a URL-safe base64 JSON payload.
+ * Uses btoa which is available in React Native's Hermes engine.
+ */
+function buildSharePayload(opts: {
+  name: string;
+  position?: string;
+  teamName?: string;
+  date: string;
+  ratings: Record<SkillKey, number>;
+  note?: string;
+}): string {
+  const r: Record<string, number> = {};
+  for (const key of SKILL_KEYS) {
+    r[SKILL_SHORT[key]] = opts.ratings[key];
+  }
+
+  const obj: Record<string, unknown> = {
+    n: opts.name,
+    d: opts.date,
+    r,
+  };
+  if (opts.position) obj.p = opts.position;
+  if (opts.teamName) obj.t = opts.teamName;
+  if (opts.note?.trim()) obj.no = opts.note.trim();
+  obj.cn = "Coach";
+
+  const json = JSON.stringify(obj);
+  // URL-safe base64 (replace + → -, / → _, strip =)
+  const b64 = btoa(unescape(encodeURIComponent(json)));
+  return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 export default function PlayerDetailScreen() {
@@ -41,6 +85,34 @@ export default function PlayerDetailScreen() {
   const latest = history[0];
   const overall = latest ? averageRatings(latest.ratings) : 0;
   const signals = latest ? strongestAndFocus(latest.ratings) : null;
+
+  // Resolve team name for the share payload
+  const team = player ? data.teams.find((t) => t.id === player.teamId) : undefined;
+
+  async function handleShare() {
+    if (!player || !latest) return;
+    haptic.light(data.settings.hapticsEnabled);
+
+    const payload = buildSharePayload({
+      name: player.name,
+      position: player.position,
+      teamName: team?.name,
+      date: latest.createdAt,
+      ratings: latest.ratings,
+      note: latest.note,
+    });
+
+    const url = `https://soccerskilltracker.com/share/${payload}`;
+
+    try {
+      await Share.share({
+        message: `${player.name}'s latest Tactiq Coach assessment:\n${url}`,
+        url,
+      });
+    } catch {
+      // User dismissed the share sheet — no action needed.
+    }
+  }
 
   if (!player) {
     return (
@@ -120,6 +192,14 @@ export default function PlayerDetailScreen() {
                 ) : null}
               </AppCard>
             </View>
+
+            {/* Share button — only shown when there is a latest assessment */}
+            <AppButton
+              label="Share with player / parent"
+              icon="share"
+              variant="secondary"
+              onPress={handleShare}
+            />
           </>
         ) : (
           <AppCard tone="amber" style={styles.emptyCard}>
@@ -157,7 +237,7 @@ export default function PlayerDetailScreen() {
           icon="add"
           onPress={() => {
             haptic.light(data.settings.hapticsEnabled);
-            router.push({ pathname: "/assessment", params: { playerId: player.id } });
+            router.push({ pathname: "/assessment-qa", params: { playerId: player.id } });
           }}
         />
       </ScrollView>

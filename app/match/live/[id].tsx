@@ -94,7 +94,6 @@ export default function MatchLiveScreen() {
     if (!selectedThird || !selectedChannel) return;
     const minute = Math.floor(elapsed / 60) + 1;
     addMatchEvent({
-      id: `evt-${Date.now()}`,
       matchId: id,
       matchMinute: minute,
       third: selectedThird,

@@ -16,7 +16,7 @@ export default function CaptureScreen() {
   const choose = (target: "match" | "assessment") => {
     haptic.light(hapticsEnabled);
     if (target === "assessment") {
-      router.push("/assessment");
+      router.push("/assessment-qa");
       return;
     }
     if (activeMatch) {
@@ -96,7 +96,7 @@ export default function CaptureScreen() {
             <View style={styles.choiceCopy}>
               <Text style={styles.choiceTitle}>Assess a player</Text>
               <Text style={styles.choiceBody}>
-                Rate six skills with clear choices and add one useful coaching note.
+                Answer six quick questions about today's performance — no numbers, just words.
               </Text>
             </View>
             <View style={styles.stepRow}>
