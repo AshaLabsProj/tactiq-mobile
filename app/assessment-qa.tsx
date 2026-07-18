@@ -310,11 +310,7 @@ export default function AssessmentQAScreen() {
   };
 
   const renderNoteStep = () => (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={styles.stepContent}
-      keyboardVerticalOffset={insets.top + 60}
-    >
+    <View style={styles.stepContent}>
       <Text style={styles.stepEyebrow}>FINAL STEP</Text>
       <Text style={styles.stepQuestion}>Any coaching notes for {selectedPlayer?.name.split(" ")[0]}?</Text>
       <Text style={styles.stepContext}>
@@ -332,17 +328,7 @@ export default function AssessmentQAScreen() {
         autoFocus
       />
       <Text style={styles.charCount}>{note.length}/280</Text>
-
-      <Pressable
-        onPress={goNext}
-        style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}
-      >
-        <Text style={styles.primaryBtnText}>
-          {note.trim() ? "Save note & review" : "Skip & review"}
-        </Text>
-        <MaterialIcons name="arrow-forward" size={20} color={palette.white} />
-      </Pressable>
-    </KeyboardAvoidingView>
+    </View>
   );
 
   const renderSummaryStep = () => (
@@ -377,14 +363,6 @@ export default function AssessmentQAScreen() {
         ) : null}
       </View>
 
-      <Pressable
-        onPress={handleSave}
-        disabled={saving}
-        style={({ pressed }) => [styles.saveBtn, (pressed || saving) && styles.pressed]}
-      >
-        <MaterialIcons name="check" size={22} color={palette.white} />
-        <Text style={styles.saveBtnText}>{saving ? "Saving…" : "Save assessment"}</Text>
-      </Pressable>
     </View>
   );
 
@@ -418,18 +396,53 @@ export default function AssessmentQAScreen() {
       )}
 
       {/* Animated content */}
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={insets.top + 56}
       >
-        <Animated.View style={{ opacity: 1, transform: [{ translateX }] }}>
-          {step === 0 && renderPlayerStep()}
-          {step >= SKILL_STEP_START && currentSkill && renderSkillStep(currentSkill)}
-          {step === NOTE_STEP && renderNoteStep()}
-          {step === NOTE_STEP + 1 && renderSummaryStep()}
-        </Animated.View>
-      </ScrollView>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Animated.View style={{ opacity: 1, transform: [{ translateX }] }}>
+            {step === 0 && renderPlayerStep()}
+            {step >= SKILL_STEP_START && currentSkill && renderSkillStep(currentSkill)}
+            {step === NOTE_STEP && renderNoteStep()}
+            {step === NOTE_STEP + 1 && renderSummaryStep()}
+          </Animated.View>
+        </ScrollView>
+
+        {/* Sticky action footer — note step */}
+        {step === NOTE_STEP && (
+          <View style={[styles.stickyFooter, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+            <Pressable
+              onPress={goNext}
+              style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}
+            >
+              <Text style={styles.primaryBtnText}>
+                {note.trim() ? "Save note & review" : "Skip & review"}
+              </Text>
+              <MaterialIcons name="arrow-forward" size={20} color={palette.white} />
+            </Pressable>
+          </View>
+        )}
+
+        {/* Sticky action footer — summary/save step */}
+        {step === NOTE_STEP + 1 && (
+          <View style={[styles.stickyFooter, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+            <Pressable
+              onPress={handleSave}
+              disabled={saving}
+              style={({ pressed }) => [styles.saveBtn, (pressed || saving) && styles.pressed]}
+            >
+              <MaterialIcons name="check" size={22} color={palette.white} />
+              <Text style={styles.saveBtnText}>{saving ? "Saving…" : "Save assessment"}</Text>
+            </Pressable>
+          </View>
+        )}
+      </KeyboardAvoidingView>
     </ScreenContainer>
   );
 }
@@ -474,7 +487,15 @@ const styles = StyleSheet.create({
     backgroundColor: palette.primary,
     borderRadius: 2,
   },
+  flex: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
+  stickyFooter: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    backgroundColor: palette.background,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: palette.border,
+  },
   stepContent: { paddingTop: 16, gap: 16 },
   stepEyebrow: {
     color: palette.primary,
