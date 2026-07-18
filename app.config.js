@@ -77,6 +77,12 @@ module.exports = {
       },
     ],
   ],
+  updates: {
+    url: "https://u.expo.dev/b26d9d51-1887-488d-bb6d-ed29ded055ea",
+  },
+  runtimeVersion: {
+    policy: "appVersion",
+  },
   experiments: {
     typedRoutes: true,
     reactCompiler: true,
