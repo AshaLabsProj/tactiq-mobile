@@ -1,0 +1,18 @@
+[Sat Jul 18 00:33:52 UTC 2026] Starting build monitor...
+[Sat Jul 18 00:33:57 UTC 2026] iOS: IN_PROGRESS | Android: IN_PROGRESS
+[Sat Jul 18 00:36:02 UTC 2026] iOS: IN_PROGRESS | Android: IN_PROGRESS
+[Sat Jul 18 00:38:07 UTC 2026] iOS: FINISHED | Android: IN_PROGRESS
+[Sat Jul 18 00:38:07 UTC 2026] iOS build FINISHED! Submitting to TestFlight...
+★ eas-cli@21.0.2 is now available.
+To upgrade, run:
+npm install -g eas-cli
+Proceeding with outdated version.
+
+(node:2440285) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+Selected build uses "preview" build profile but a submit profile with the same name is missing in eas.json. Using default ("production") profile
+Set ascAppId in the submit profile (eas.json) or re-run this command in interactive mode.
+Submission failed
+    Error: submit command failed.
+[Sat Jul 18 00:38:11 UTC 2026] TestFlight submission complete.

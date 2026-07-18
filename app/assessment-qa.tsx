@@ -326,8 +326,16 @@ export default function AssessmentQAScreen() {
         value={note}
         onChangeText={setNote}
         autoFocus
+        autoCapitalize="sentences"
+        autoCorrect
       />
-      <Text style={styles.charCount}>{note.length}/280</Text>
+      <View style={styles.noteFooterRow}>
+        <Text style={styles.charCount}>{note.length}/280</Text>
+        <View style={styles.micHint}>
+          <MaterialIcons name="mic" size={14} color={palette.muted} />
+          <Text style={styles.micHintText}>Tap the mic on your keyboard to dictate</Text>
+        </View>
+      </View>
     </View>
   );
 
@@ -611,8 +619,22 @@ const styles = StyleSheet.create({
     color: palette.muted,
     fontSize: 11,
     lineHeight: 15,
-    textAlign: "right",
-    marginTop: -8,
+  },
+  noteFooterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 4,
+  },
+  micHint: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  micHintText: {
+    color: palette.muted,
+    fontSize: 11,
+    lineHeight: 15,
   },
   primaryBtn: {
     flexDirection: "row",
@@ -623,6 +645,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 16,
     marginTop: 8,
+    // Force compositing layer so background always renders on iOS
+    overflow: "hidden",
   },
   primaryBtnText: {
     color: palette.white,
@@ -680,6 +704,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 18,
     marginTop: 8,
+    overflow: "hidden",
   },
   saveBtnText: {
     color: palette.white,

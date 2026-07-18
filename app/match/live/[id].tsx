@@ -1,3 +1,10 @@
+/**
+ * Match Live Screen
+ *
+ * Navy/blue color identity — visually distinct from the green assessment flow.
+ * Zone selection via interactive SVG soccer pitch (replaces text button rows).
+ * Outcome buttons appear below the pitch once a zone is selected.
+ */
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -9,53 +16,55 @@ import {
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   AppButton,
   AppCard,
   IconButton,
-  mobileStyles,
   StatusChip,
 } from "@/components/mobile/ui";
+import {
+  PitchZoneSelector,
+  type PitchZone,
+} from "@/components/pitch-zone-selector";
 import { ScreenContainer } from "@/components/screen-container";
 import { useWorkspace } from "@/contexts/workspace-context";
 import { haptic } from "@/lib/haptics";
 import { palette } from "@/lib/palette";
-import type { MatchOutcome, PitchChannel, PitchThird } from "@/types/models";
+import type { MatchOutcome } from "@/types/models";
 
-const THIRDS: { key: PitchThird; label: string }[] = [
-  { key: "defensive", label: "Defensive" },
-  { key: "middle", label: "Middle" },
-  { key: "attacking", label: "Attacking" },
+// ─── Outcome definitions ──────────────────────────────────────────────────────
+const OUTCOMES: { key: MatchOutcome; label: string; color: string; bg: string }[] = [
+  { key: "progression", label: "Progression ↑", color: "#4ADE80", bg: "rgba(74,222,128,0.15)" },
+  { key: "chance",      label: "Chance ⚡",      color: "#FCD34D", bg: "rgba(252,211,77,0.15)" },
+  { key: "retention",   label: "Retention ●",   color: "#93C5FD", bg: "rgba(147,197,253,0.15)" },
+  { key: "turnover",    label: "Turnover ✕",    color: "#F87171", bg: "rgba(248,113,113,0.15)" },
 ];
 
-const CHANNELS: { key: PitchChannel; label: string }[] = [
-  { key: "left", label: "Left" },
-  { key: "central", label: "Central" },
-  { key: "right", label: "Right" },
-];
-
-const OUTCOMES: { key: MatchOutcome; label: string; color: string }[] = [
-  { key: "progression", label: "Progression", color: palette.primary },
-  { key: "chance", label: "Chance", color: palette.amber },
-  { key: "retention", label: "Retention", color: palette.primaryDark },
-  { key: "turnover", label: "Turnover", color: palette.coral },
-];
-
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatElapsed(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
+function zoneLabel(zone: PitchZone): string {
+  const t = zone.third === "defensive" ? "Def" : zone.third === "middle" ? "Mid" : "Atk";
+  const c = zone.channel.charAt(0).toUpperCase() + zone.channel.slice(1);
+  return `${t} · ${c}`;
+}
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
 export default function MatchLiveScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data, addMatchEvent, undoMatchEvent, setMatchStatus, setMatchScore } = useWorkspace();
+  const { data, addMatchEvent, undoMatchEvent, setMatchStatus } = useWorkspace();
+  const insets = useSafeAreaInsets();
+
   const match = data.matches.find((m) => m.id === id);
   const events = data.matchEvents.filter((e) => e.matchId === id);
   const hapticsEnabled = data.settings.hapticsEnabled;
 
-  const [selectedThird, setSelectedThird] = useState<PitchThird | null>(null);
-  const [selectedChannel, setSelectedChannel] = useState<PitchChannel | null>(null);
+  const [selectedZone, setSelectedZone] = useState<PitchZone | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -90,20 +99,28 @@ export default function MatchLiveScreen() {
     );
   }
 
+  const handleZoneSelect = (zone: PitchZone) => {
+    if (selectedZone?.third === zone.third && selectedZone?.channel === zone.channel) {
+      setSelectedZone(null);
+    } else {
+      setSelectedZone(zone);
+      haptic.light(hapticsEnabled);
+    }
+  };
+
   const recordEvent = (outcome: MatchOutcome) => {
-    if (!selectedThird || !selectedChannel) return;
+    if (!selectedZone) return;
     const minute = Math.floor(elapsed / 60) + 1;
     addMatchEvent({
       matchId: id,
       matchMinute: minute,
-      third: selectedThird,
-      channel: selectedChannel,
+      third: selectedZone.third,
+      channel: selectedZone.channel,
       outcome,
       pressure: "medium",
     });
     haptic.light(hapticsEnabled);
-    setSelectedThird(null);
-    setSelectedChannel(null);
+    setSelectedZone(null);
   };
 
   const endMatch = () => {
@@ -126,16 +143,19 @@ export default function MatchLiveScreen() {
     );
   };
 
-  const canRecord = selectedThird !== null && selectedChannel !== null;
+  const progressions = events.filter((e) => e.outcome === "progression").length;
+  const chances = events.filter((e) => e.outcome === "chance").length;
+  const turnovers = events.filter((e) => e.outcome === "turnover").length;
 
   return (
-    <ScreenContainer edges={["top", "bottom", "left", "right"]}>
+    <View style={[styles.screen, { paddingTop: insets.top }]}>
+      {/* ── Top bar ── */}
       <View style={styles.topBar}>
         <View style={styles.topLeft}>
           <StatusChip label={match.status === "paused" ? "Paused" : "Live"} tone="amber" />
           <Text style={styles.timer}>{formatElapsed(elapsed)}</Text>
         </View>
-        <Text style={styles.opponent}>vs {match.opponent}</Text>
+        <Text style={styles.opponent} numberOfLines={1}>vs {match.opponent}</Text>
         <View style={styles.topRight}>
           <IconButton
             name="undo"
@@ -154,105 +174,60 @@ export default function MatchLiveScreen() {
         </View>
       </View>
 
+      {/* ── Stats strip ── */}
+      <View style={styles.statsStrip}>
+        <View style={styles.stat}>
+          <Text style={styles.statValue}>{events.length}</Text>
+          <Text style={styles.statLabel}>Events</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.stat}>
+          <Text style={[styles.statValue, { color: "#4ADE80" }]}>{progressions}</Text>
+          <Text style={styles.statLabel}>Prog.</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.stat}>
+          <Text style={[styles.statValue, { color: "#FCD34D" }]}>{chances}</Text>
+          <Text style={styles.statLabel}>Chances</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.stat}>
+          <Text style={[styles.statValue, { color: "#F87171" }]}>{turnovers}</Text>
+          <Text style={styles.statLabel}>Turnovers</Text>
+        </View>
+      </View>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={mobileStyles.screenContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
       >
-        <AppCard style={styles.statsRow}>
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>{events.length}</Text>
-            <Text style={styles.statLabel}>Events</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>
-              {events.filter((e) => e.outcome === "progression").length}
-            </Text>
-            <Text style={styles.statLabel}>Progressions</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>
-              {events.filter((e) => e.outcome === "chance").length}
-            </Text>
-            <Text style={styles.statLabel}>Chances</Text>
-          </View>
-        </AppCard>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Pitch third</Text>
-          <View style={styles.choiceRow}>
-            {THIRDS.map(({ key, label }) => (
-              <Pressable
-                key={key}
-                accessibilityRole="button"
-                onPress={() => {
-                  setSelectedThird(key);
-                  haptic.light(hapticsEnabled);
-                }}
-                style={[
-                  styles.choiceBtn,
-                  selectedThird === key && styles.choiceBtnSelected,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.choiceBtnText,
-                    selectedThird === key && styles.choiceBtnTextSelected,
-                  ]}
-                >
-                  {label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+        {/* ── Pitch zone selector ── */}
+        <View style={styles.pitchWrapper}>
+          <Text style={styles.pitchHint}>
+            {selectedZone
+              ? `Zone: ${zoneLabel(selectedZone)} — tap an outcome below`
+              : "Tap a zone on the pitch to record an event"}
+          </Text>
+          <PitchZoneSelector selected={selectedZone} onSelect={handleZoneSelect} />
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Channel</Text>
-          <View style={styles.choiceRow}>
-            {CHANNELS.map(({ key, label }) => (
-              <Pressable
-                key={key}
-                accessibilityRole="button"
-                onPress={() => {
-                  setSelectedChannel(key);
-                  haptic.light(hapticsEnabled);
-                }}
-                style={[
-                  styles.choiceBtn,
-                  selectedChannel === key && styles.choiceBtnSelected,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.choiceBtnText,
-                    selectedChannel === key && styles.choiceBtnTextSelected,
-                  ]}
-                >
-                  {label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, !canRecord && styles.sectionTitleMuted]}>
-            Outcome {!canRecord ? "— select zone first" : ""}
+        {/* ── Outcome buttons ── */}
+        <View style={[styles.outcomeSection, !selectedZone && styles.outcomeSectionDisabled]}>
+          <Text style={styles.outcomeSectionTitle}>
+            {selectedZone ? "Record outcome" : "Select a zone first"}
           </Text>
           <View style={styles.outcomeGrid}>
-            {OUTCOMES.map(({ key, label, color }) => (
+            {OUTCOMES.map(({ key, label, color, bg }) => (
               <Pressable
                 key={key}
                 accessibilityRole="button"
-                disabled={!canRecord}
+                disabled={!selectedZone}
                 onPress={() => recordEvent(key)}
                 style={({ pressed }) => [
                   styles.outcomeBtn,
-                  { borderColor: color },
-                  !canRecord && styles.outcomeBtnDisabled,
-                  pressed && canRecord && styles.pressed,
+                  { borderColor: color, backgroundColor: bg },
+                  !selectedZone && styles.outcomeBtnDisabled,
+                  pressed && selectedZone && styles.pressed,
                 ]}
               >
                 <Text style={[styles.outcomeBtnText, { color }]}>{label}</Text>
@@ -261,58 +236,66 @@ export default function MatchLiveScreen() {
           </View>
         </View>
 
+        {/* ── Recent events ── */}
         {events.length > 0 ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Recent events</Text>
+          <View style={styles.eventsSection}>
+            <Text style={styles.eventsSectionTitle}>Recent events</Text>
             <AppCard style={styles.eventList}>
               {events
                 .slice(-5)
                 .reverse()
-                .map((event, index) => (
-                  <View
-                    key={event.id}
-                    style={[styles.eventRow, index > 0 && styles.eventDivider]}
-                  >
-                    <Text style={styles.eventMinute}>{event.matchMinute}&apos;</Text>
-                    <Text style={styles.eventDesc}>
-                      {event.third} · {event.channel}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.eventOutcome,
-                        {
-                          color:
-                            OUTCOMES.find((o) => o.key === event.outcome)?.color ??
-                            palette.ink,
-                        },
-                      ]}
+                .map((event, index) => {
+                  const outcomeColor =
+                    OUTCOMES.find((o) => o.key === event.outcome)?.color ?? palette.ink;
+                  return (
+                    <View
+                      key={event.id}
+                      style={[styles.eventRow, index > 0 && styles.eventDivider]}
                     >
-                      {event.outcome}
-                    </Text>
-                  </View>
-                ))}
+                      <Text style={styles.eventMinute}>{event.matchMinute}&apos;</Text>
+                      <Text style={styles.eventDesc}>
+                        {event.third.charAt(0).toUpperCase() + event.third.slice(1)} ·{" "}
+                        {event.channel.charAt(0).toUpperCase() + event.channel.slice(1)}
+                      </Text>
+                      <Text style={[styles.eventOutcome, { color: outcomeColor }]}>
+                        {event.outcome}
+                      </Text>
+                    </View>
+                  );
+                })}
             </AppCard>
           </View>
-        ) : null}
+        ) : (
+          <View style={styles.emptyEvents}>
+            <Text style={styles.emptyEventsText}>
+              No events yet — tap a zone on the pitch to start
+            </Text>
+          </View>
+        )}
       </ScrollView>
-    </ScreenContainer>
+    </View>
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: palette.navy,
+  },
   topBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 14,
-    gap: 12,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 12,
+    gap: 10,
   },
-  topLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
-  topRight: { flexDirection: "row", alignItems: "center", gap: 8 },
+  topLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
+  topRight: { flexDirection: "row", alignItems: "center", gap: 6 },
   timer: {
-    color: palette.ink,
+    color: palette.white,
     fontSize: 16,
     lineHeight: 21,
     fontWeight: "700",
@@ -320,60 +303,94 @@ const styles = StyleSheet.create({
   },
   opponent: {
     flex: 1,
-    color: palette.ink,
+    color: palette.white,
     fontSize: 16,
     lineHeight: 21,
     fontWeight: "700",
     textAlign: "center",
   },
-  statsRow: {
+  statsStrip: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-around",
-    paddingVertical: 18,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: palette.navyMid,
+    marginHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 12,
   },
-  stat: { alignItems: "center", gap: 4 },
+  stat: { alignItems: "center", gap: 2 },
   statValue: {
-    color: palette.ink,
-    fontSize: 26,
-    lineHeight: 32,
+    color: palette.white,
+    fontSize: 22,
+    lineHeight: 28,
     fontWeight: "800",
     fontVariant: ["tabular-nums"],
   },
-  statLabel: { color: palette.muted, fontSize: 12, lineHeight: 16, fontWeight: "600" },
-  statDivider: { width: 1, height: 36, backgroundColor: palette.border },
-  section: { gap: 10 },
-  sectionTitle: { color: palette.ink, fontSize: 16, lineHeight: 21, fontWeight: "700" },
-  sectionTitleMuted: { color: palette.muted },
-  choiceRow: { flexDirection: "row", gap: 10 },
-  choiceBtn: {
-    flex: 1,
-    minHeight: 52,
-    borderRadius: 14,
-    backgroundColor: palette.surface,
-    borderWidth: 1,
-    borderColor: palette.border,
+  statLabel: {
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: "600",
+  },
+  statDivider: { width: 1, height: 30, backgroundColor: palette.navyBorder },
+  scrollContent: {
+    paddingHorizontal: 16,
+    gap: 16,
+  },
+  pitchWrapper: {
+    gap: 8,
     alignItems: "center",
-    justifyContent: "center",
   },
-  choiceBtnSelected: {
-    backgroundColor: palette.primarySoft,
-    borderColor: palette.primary,
+  pitchHint: {
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: "center",
+    fontWeight: "500",
   },
-  choiceBtnText: { color: palette.muted, fontSize: 14, lineHeight: 19, fontWeight: "700" },
-  choiceBtnTextSelected: { color: palette.primaryDark },
-  outcomeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  outcomeSection: {
+    gap: 10,
+  },
+  outcomeSectionDisabled: {
+    opacity: 0.45,
+  },
+  outcomeSectionTitle: {
+    color: "rgba(255,255,255,0.75)",
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  outcomeGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
   outcomeBtn: {
     width: "47%",
-    minHeight: 60,
-    borderRadius: 16,
-    borderWidth: 2,
+    minHeight: 56,
+    borderRadius: 14,
+    borderWidth: 1.5,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: palette.surface,
+    paddingHorizontal: 8,
   },
-  outcomeBtnDisabled: { opacity: 0.35 },
-  outcomeBtnText: { fontSize: 15, lineHeight: 20, fontWeight: "700" },
+  outcomeBtnDisabled: { opacity: 0.5 },
+  outcomeBtnText: { fontSize: 14, lineHeight: 19, fontWeight: "700", textAlign: "center" },
+  eventsSection: {
+    gap: 8,
+  },
+  eventsSectionTitle: {
+    color: "rgba(255,255,255,0.75)",
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
   eventList: { paddingVertical: 4, paddingHorizontal: 0 },
   eventRow: {
     flexDirection: "row",
@@ -393,6 +410,16 @@ const styles = StyleSheet.create({
   },
   eventDesc: { flex: 1, color: palette.ink, fontSize: 13, lineHeight: 18 },
   eventOutcome: { fontSize: 13, lineHeight: 18, fontWeight: "700" },
+  emptyEvents: {
+    paddingVertical: 20,
+    alignItems: "center",
+  },
+  emptyEventsText: {
+    color: "rgba(255,255,255,0.4)",
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: "center",
+  },
   notFound: {
     flex: 1,
     padding: 24,

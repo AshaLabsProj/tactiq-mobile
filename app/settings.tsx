@@ -1,5 +1,6 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router } from "expo-router";
+import { useEffect, useState } from "react";
 import { Alert, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 
 import { AppButton, AppCard, IconButton } from "@/components/mobile/ui";
@@ -7,9 +8,53 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useWorkspace } from "@/contexts/workspace-context";
 import { haptic } from "@/lib/haptics";
 import { palette } from "@/lib/palette";
+import { startOAuthLogin } from "@/constants/oauth";
+import { getSessionToken, getUserInfo, removeSessionToken, clearUserInfo } from "@/lib/_core/auth";
+
+type UserInfo = { name?: string; email?: string } | null;
 
 export default function SettingsScreen() {
   const { data, updateSettings, resetWorkspace } = useWorkspace();
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const [userInfo, setUserInfo] = useState<UserInfo>(null);
+
+  // Load auth state on mount
+  useEffect(() => {
+    (async () => {
+      const token = await getSessionToken();
+      setSessionToken(token);
+      if (token) {
+        const info = await getUserInfo();
+        setUserInfo(info as UserInfo);
+      }
+    })();
+  }, []);
+
+  const handleSignIn = async () => {
+    haptic.light(data.settings.hapticsEnabled);
+    await startOAuthLogin();
+  };
+
+  const handleSignOut = () => {
+    Alert.alert(
+      "Sign out?",
+      "Your local data will remain on this device. You can sign back in at any time.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Sign out",
+          style: "destructive",
+          onPress: async () => {
+            await removeSessionToken();
+            await clearUserInfo();
+            setSessionToken(null);
+            setUserInfo(null);
+            haptic.light(data.settings.hapticsEnabled);
+          },
+        },
+      ],
+    );
+  };
 
   const confirmReset = () => {
     Alert.alert(
@@ -41,6 +86,49 @@ export default function SettingsScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+
+        {/* ── Account ─────────────────────────────────────────────────── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Account</Text>
+          {sessionToken ? (
+            <AppCard style={styles.accountCard}>
+              <View style={styles.accountIcon}>
+                <MaterialIcons name="account-circle" size={26} color={palette.primary} />
+              </View>
+              <View style={styles.accountCopy}>
+                <Text style={styles.accountName}>{userInfo?.name ?? "Signed in"}</Text>
+                {userInfo?.email ? (
+                  <Text style={styles.accountEmail}>{userInfo.email}</Text>
+                ) : null}
+              </View>
+              <View style={styles.accountActions}>
+                <AppButton
+                  label="Sign out"
+                  variant="destructive"
+                  icon="logout"
+                  onPress={handleSignOut}
+                />
+              </View>
+            </AppCard>
+          ) : (
+            <AppCard style={styles.signInCard}>
+              <View style={styles.signInIcon}>
+                <MaterialIcons name="login" size={24} color={palette.primaryDark} />
+              </View>
+              <View style={styles.signInCopy}>
+                <Text style={styles.signInTitle}>Sign in to sync your data</Text>
+                <Text style={styles.signInBody}>
+                  Access your teams and assessments across devices.
+                </Text>
+              </View>
+              <View style={styles.signInBtn}>
+                <AppButton label="Sign in" icon="arrow-forward" onPress={handleSignIn} />
+              </View>
+            </AppCard>
+          )}
+        </View>
+
+        {/* ── Experience ───────────────────────────────────────────────── */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Experience</Text>
           <AppCard style={styles.settingsCard}>
@@ -67,6 +155,7 @@ export default function SettingsScreen() {
           </AppCard>
         </View>
 
+        {/* ── Data ─────────────────────────────────────────────────────── */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Data</Text>
           <AppCard style={styles.infoCard}>
@@ -76,13 +165,14 @@ export default function SettingsScreen() {
             <View style={styles.infoCopy}>
               <Text style={styles.infoTitle}>Stored on this device</Text>
               <Text style={styles.infoBody}>
-                This simplified build works without sign-in. Team, match, and assessment data persist locally.
+                Team, match, and assessment data is saved locally. Sign in above to sync across devices.
               </Text>
             </View>
           </AppCard>
           <AppButton label="Reset demonstration data" variant="destructive" icon="restart-alt" onPress={confirmReset} />
         </View>
 
+        {/* ── About ────────────────────────────────────────────────────── */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>About</Text>
           <AppCard tone="green" style={styles.aboutCard}>
@@ -96,6 +186,7 @@ export default function SettingsScreen() {
             </View>
           </AppCard>
         </View>
+
       </ScrollView>
     </ScreenContainer>
   );
@@ -108,17 +199,33 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 20, paddingBottom: 34, gap: 26 },
   section: { gap: 10 },
   sectionTitle: { color: palette.ink, fontSize: 18, lineHeight: 24, fontWeight: "700" },
+  // Account
+  accountCard: { flexDirection: "row", alignItems: "center", gap: 12 },
+  accountIcon: { width: 46, height: 46, borderRadius: 15, backgroundColor: palette.primarySoft, alignItems: "center", justifyContent: "center" },
+  accountCopy: { flex: 1 },
+  accountName: { color: palette.ink, fontSize: 15, lineHeight: 20, fontWeight: "700" },
+  accountEmail: { color: palette.muted, fontSize: 12, lineHeight: 17, marginTop: 2 },
+  accountActions: { overflow: "hidden" },
+  signInCard: { gap: 12 },
+  signInIcon: { width: 46, height: 46, borderRadius: 15, backgroundColor: palette.primarySoft, alignItems: "center", justifyContent: "center" },
+  signInCopy: {},
+  signInTitle: { color: palette.ink, fontSize: 15, lineHeight: 20, fontWeight: "700" },
+  signInBody: { color: palette.muted, fontSize: 13, lineHeight: 19, marginTop: 3 },
+  signInBtn: { overflow: "hidden" },
+  // Experience
   settingsCard: { paddingVertical: 6 },
   settingRow: { minHeight: 74, flexDirection: "row", alignItems: "center", gap: 12 },
   settingIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: palette.primarySoft, alignItems: "center", justifyContent: "center" },
   settingCopy: { flex: 1 },
   settingTitle: { color: palette.ink, fontSize: 15, lineHeight: 20, fontWeight: "700" },
   settingBody: { color: palette.muted, fontSize: 12, lineHeight: 17, marginTop: 2 },
+  // Data
   infoCard: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
   infoIcon: { width: 44, height: 44, borderRadius: 15, backgroundColor: palette.primarySoft, alignItems: "center", justifyContent: "center" },
   infoCopy: { flex: 1 },
   infoTitle: { color: palette.ink, fontSize: 15, lineHeight: 20, fontWeight: "700" },
   infoBody: { color: palette.muted, fontSize: 13, lineHeight: 19, marginTop: 3 },
+  // About
   aboutCard: { flexDirection: "row", alignItems: "center", gap: 14 },
   brandMark: { width: 58, height: 58, borderRadius: 18, backgroundColor: palette.primary, alignItems: "center", justifyContent: "center" },
   aboutCopy: { flex: 1 },

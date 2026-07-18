@@ -16,4 +16,15 @@ export const palette = {
   skySoft: "#E5EEF4",
   white: "#FFFFFF",
   black: "#000000",
+  // Match tracking — navy/blue identity (distinct from assessment green)
+  navy: "#0D2137",
+  navyMid: "#1A3A5C",
+  navyLight: "#2A5080",
+  navySoft: "#E8EFF6",
+  navyBorder: "#2E4A6A",
+  // Home screen feature card tokens
+  matchSurface: "#1A3A5C",
+  matchBorder: "#2E4A6A",
+  matchText: "#FFFFFF",
+  matchMuted: "rgba(255,255,255,0.65)",
 } as const;

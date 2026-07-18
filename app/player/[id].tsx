@@ -232,14 +232,16 @@ export default function PlayerDetailScreen() {
           </View>
         ) : null}
 
-        <AppButton
-          label={latest ? "Add assessment" : "Create first assessment"}
-          icon="add"
-          onPress={() => {
-            haptic.light(data.settings.hapticsEnabled);
-            router.push({ pathname: "/assessment-qa", params: { playerId: player.id } });
-          }}
-        />
+        <View style={styles.actionBtnWrapper}>
+          <AppButton
+            label={latest ? "Add assessment" : "Create first assessment"}
+            icon="add"
+            onPress={() => {
+              haptic.light(data.settings.hapticsEnabled);
+              router.push({ pathname: "/assessment-qa", params: { playerId: player.id } });
+            }}
+          />
+        </View>
       </ScrollView>
     </ScreenContainer>
   );
@@ -282,4 +284,6 @@ const styles = StyleSheet.create({
   historyScore: { color: palette.primaryDark, fontSize: 18, lineHeight: 23, fontWeight: "800", fontVariant: ["tabular-nums"] },
   notFound: { flex: 1, padding: 24, alignItems: "center", justifyContent: "center", gap: 14 },
   notFoundTitle: { color: palette.ink, fontSize: 22, lineHeight: 28, fontWeight: "800" },
+  // Wrapper forces the layout engine to render the button background correctly on iOS
+  actionBtnWrapper: { paddingBottom: 4, overflow: "visible" },
 });

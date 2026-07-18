@@ -117,38 +117,58 @@ export default function HomeScreen() {
           </AppCard>
         </View>
 
+        {/* ── Match Tracking ─────────────────────────────────────────── */}
         <View style={styles.sectionBlock}>
-          <SectionHeader title="Quick capture" />
-          <View style={styles.quickGrid}>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => {
-                haptic.light(hapticsEnabled);
-                router.push("/match/setup");
-              }}
-              style={({ pressed }) => [styles.quickCard, pressed && styles.pressed]}
-            >
-              <View style={[styles.quickIcon, styles.quickIconGreen]}>
-                <MaterialIcons name="sports-soccer" size={24} color={palette.primaryDark} />
-              </View>
-              <Text style={styles.quickTitle}>New match</Text>
-              <Text style={styles.quickBody}>Track zones and outcomes live.</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => {
-                haptic.light(hapticsEnabled);
-                router.push("/assessment-qa");
-              }}
-              style={({ pressed }) => [styles.quickCard, pressed && styles.pressed]}
-            >
-              <View style={[styles.quickIcon, styles.quickIconAmber]}>
-                <MaterialIcons name="fact-check" size={24} color="#8E5A0E" />
-              </View>
-              <Text style={styles.quickTitle}>Assessment</Text>
-              <Text style={styles.quickBody}>Capture six skill ratings.</Text>
-            </Pressable>
+          <View style={styles.sectionLabelRow}>
+            <View style={styles.sectionDot} />
+            <Text style={styles.sectionLabel}>MATCH TRACKING</Text>
           </View>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              haptic.light(hapticsEnabled);
+              router.push("/match/setup");
+            }}
+            style={({ pressed }) => [styles.featureCard, styles.featureCardMatch, pressed && styles.pressed]}
+          >
+            <View style={styles.featureCardInner}>
+              <View style={[styles.featureIcon, styles.featureIconMatch]}>
+                <MaterialIcons name="sports-soccer" size={26} color={palette.matchText} />
+              </View>
+              <View style={styles.featureCopy}>
+                <Text style={[styles.featureTitle, { color: palette.matchText }]}>Track a match</Text>
+                <Text style={[styles.featureBody, { color: palette.matchMuted }]}>Log zones, outcomes &amp; events live on the pitch.</Text>
+              </View>
+              <MaterialIcons name="arrow-forward-ios" size={16} color={palette.matchMuted} />
+            </View>
+          </Pressable>
+        </View>
+
+        {/* ── Player Development ─────────────────────────────────────── */}
+        <View style={styles.sectionBlock}>
+          <View style={styles.sectionLabelRow}>
+            <View style={[styles.sectionDot, styles.sectionDotAmber]} />
+            <Text style={[styles.sectionLabel, styles.sectionLabelAmber]}>PLAYER DEVELOPMENT</Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              haptic.light(hapticsEnabled);
+              router.push("/assessment-qa");
+            }}
+            style={({ pressed }) => [styles.featureCard, styles.featureCardAssess, pressed && styles.pressed]}
+          >
+            <View style={styles.featureCardInner}>
+              <View style={[styles.featureIcon, styles.featureIconAssess]}>
+                <MaterialIcons name="fact-check" size={26} color="#8E5A0E" />
+              </View>
+              <View style={styles.featureCopy}>
+                <Text style={[styles.featureTitle, { color: palette.ink }]}>Assess a player</Text>
+                <Text style={styles.featureBody}>Rate 6 skills in about one minute. One player at a time.</Text>
+              </View>
+              <MaterialIcons name="arrow-forward-ios" size={16} color={palette.muted} />
+            </View>
+          </Pressable>
         </View>
 
         <View style={styles.sectionBlock}>
@@ -223,22 +243,41 @@ const styles = StyleSheet.create({
   metricsRow: { flexDirection: "row", gap: 10 },
   metricCard: { flex: 1, padding: 13, minHeight: 92, justifyContent: "center" },
   sectionBlock: { gap: 10 },
-  quickGrid: { flexDirection: "row", gap: 12 },
-  quickCard: {
-    flex: 1,
-    minHeight: 164,
+  // Section label row (MATCH TRACKING / PLAYER DEVELOPMENT)
+  sectionLabelRow: { flexDirection: "row", alignItems: "center", gap: 7 },
+  sectionDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: palette.primary },
+  sectionDotAmber: { backgroundColor: palette.amber },
+  sectionLabel: {
+    color: palette.primaryDark,
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: "800",
+    letterSpacing: 1.2,
+  },
+  sectionLabelAmber: { color: "#8E5A0E" },
+  // Feature cards
+  featureCard: {
     borderRadius: 20,
     padding: 16,
-    backgroundColor: palette.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: palette.border,
-    gap: 8,
+    overflow: "hidden",
   },
-  quickIcon: { width: 44, height: 44, borderRadius: 15, alignItems: "center", justifyContent: "center", marginBottom: 3 },
-  quickIconGreen: { backgroundColor: palette.primarySoft },
-  quickIconAmber: { backgroundColor: palette.amberSoft },
-  quickTitle: { color: palette.ink, fontSize: 17, lineHeight: 22, fontWeight: "700" },
-  quickBody: { color: palette.muted, fontSize: 13, lineHeight: 18 },
+  featureCardMatch: {
+    backgroundColor: palette.matchSurface,
+    borderColor: palette.matchBorder,
+  },
+  featureCardAssess: {
+    backgroundColor: palette.amberSoft,
+    borderColor: "#E8C97A",
+  },
+  featureCardInner: { flexDirection: "row", alignItems: "center", gap: 14 },
+  featureIcon: { width: 52, height: 52, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  featureIconMatch: { backgroundColor: "rgba(255,255,255,0.35)" },
+  featureIconAssess: { backgroundColor: "rgba(255,255,255,0.55)" },
+  featureCopy: { flex: 1, gap: 3 },
+  featureTitle: { fontSize: 17, lineHeight: 22, fontWeight: "800" },
+  featureBody: { color: palette.muted, fontSize: 13, lineHeight: 18 },
   activityCard: { padding: 0, overflow: "hidden" },
   activityRow: { minHeight: 72, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 4, gap: 12 },
   activityIcon: { width: 38, height: 38, borderRadius: 13, backgroundColor: palette.primarySoft, alignItems: "center", justifyContent: "center" },
