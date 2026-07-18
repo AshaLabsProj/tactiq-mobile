@@ -138,7 +138,7 @@ export default function HomeScreen() {
               accessibilityRole="button"
               onPress={() => {
                 haptic.light(hapticsEnabled);
-                router.push("/assessment");
+                router.push("/assessment-qa");
               }}
               style={({ pressed }) => [styles.quickCard, pressed && styles.pressed]}
             >

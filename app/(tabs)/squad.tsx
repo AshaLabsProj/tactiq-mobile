@@ -119,7 +119,7 @@ export default function SquadScreen() {
             <SectionHeader
               title={`${players.length} ${players.length === 1 ? "player" : "players"}`}
               actionLabel="Assess"
-              onAction={() => router.push("/assessment")}
+              onAction={() => router.push("/assessment-qa")}
             />
           </View>
         }
