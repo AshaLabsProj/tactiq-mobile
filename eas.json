@@ -11,15 +11,16 @@
         "simulator": false
       }
     },
-    "preview": {
-      "distribution": "internal",
-      "ios": {
-        "buildConfiguration": "Release"
-      },
-      "android": {
-        "buildType": "apk"
-      }
-    },
+        "preview": {
+            "distribution": "internal",
+            "channel": "preview",
+            "ios": {
+                "buildConfiguration": "Release"
+            },
+            "android": {
+                "buildType": "apk"
+            }
+        },
     "production": {
       "autoIncrement": true,
       "ios": {
