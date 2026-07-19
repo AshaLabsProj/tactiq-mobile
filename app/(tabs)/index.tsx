@@ -5,13 +5,15 @@
  * Two flex-1 cards fill the available screen:
  *   Top    → Match Day          (navy)  — tactics, events, formations
  *   Bottom → Player Development (green) — assess skills, track growth
+ *
+ * NOTE: Uses SafeAreaView directly (not ScreenContainer) so that flex:1
+ * propagates correctly to the door cards.
  */
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { IconButton } from "@/components/mobile/ui";
-import { ScreenContainer } from "@/components/screen-container";
 import { useWorkspace } from "@/contexts/workspace-context";
 import { haptic } from "@/lib/haptics";
 import { palette } from "@/lib/palette";
@@ -41,49 +43,47 @@ function Door({ mode, title, subtitle, icon, badge, badgePulse, hint, onPress }:
         pressed && styles.doorPressed,
       ]}
     >
-      <View style={styles.doorContent}>
-        {/* Top row: icon + badge */}
-        <View style={styles.doorTopRow}>
-          <View style={[styles.iconCircle, isMatch ? styles.iconCircleMatch : styles.iconCircleDevelop]}>
-            <MaterialIcons
-              name={icon as any}
-              size={32}
-              color={isMatch ? "#FFFFFF" : palette.primaryDark}
-            />
-          </View>
-          {badge ? (
-            <View style={[styles.badge, isMatch ? styles.badgeMatch : styles.badgeDevelop]}>
-              {badgePulse && (
-                <View style={[styles.pulseDot, isMatch ? styles.pulseDotMatch : styles.pulseDotDevelop]} />
-              )}
-              <Text style={[styles.badgeText, isMatch ? styles.badgeTextMatch : styles.badgeTextDevelop]}>
-                {badge}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-
-        {/* Main text */}
-        <View style={styles.doorTextBlock}>
-          <Text style={[styles.doorTitle, isMatch ? styles.doorTitleMatch : styles.doorTitleDevelop]}>
-            {title}
-          </Text>
-          <Text style={[styles.doorSubtitle, isMatch ? styles.doorSubtitleMatch : styles.doorSubtitleDevelop]}>
-            {subtitle}
-          </Text>
-        </View>
-
-        {/* Hint row at bottom */}
-        <View style={[styles.hintRow, isMatch ? styles.hintRowMatch : styles.hintRowDevelop]}>
-          <Text style={[styles.hintText, isMatch ? styles.hintTextMatch : styles.hintTextDevelop]}>
-            {hint}
-          </Text>
+      {/* Top row: icon + badge */}
+      <View style={styles.doorTopRow}>
+        <View style={[styles.iconCircle, isMatch ? styles.iconCircleMatch : styles.iconCircleDevelop]}>
           <MaterialIcons
-            name="arrow-forward"
-            size={16}
-            color={isMatch ? "rgba(255,255,255,0.55)" : palette.primary}
+            name={icon as any}
+            size={32}
+            color={isMatch ? "#FFFFFF" : palette.primaryDark}
           />
         </View>
+        {badge ? (
+          <View style={[styles.badge, isMatch ? styles.badgeMatch : styles.badgeDevelop]}>
+            {badgePulse && (
+              <View style={[styles.pulseDot, isMatch ? styles.pulseDotMatch : styles.pulseDotDevelop]} />
+            )}
+            <Text style={[styles.badgeText, isMatch ? styles.badgeTextMatch : styles.badgeTextDevelop]}>
+              {badge}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+
+      {/* Main text */}
+      <View style={styles.doorTextBlock}>
+        <Text style={[styles.doorTitle, isMatch ? styles.doorTitleMatch : styles.doorTitleDevelop]}>
+          {title}
+        </Text>
+        <Text style={[styles.doorSubtitle, isMatch ? styles.doorSubtitleMatch : styles.doorSubtitleDevelop]}>
+          {subtitle}
+        </Text>
+      </View>
+
+      {/* Hint row at bottom */}
+      <View style={[styles.hintRow, isMatch ? styles.hintRowMatch : styles.hintRowDevelop]}>
+        <Text style={[styles.hintText, isMatch ? styles.hintTextMatch : styles.hintTextDevelop]}>
+          {hint}
+        </Text>
+        <MaterialIcons
+          name="arrow-forward"
+          size={16}
+          color={isMatch ? "rgba(255,255,255,0.55)" : palette.primary}
+        />
       </View>
     </Pressable>
   );
@@ -92,7 +92,6 @@ function Door({ mode, title, subtitle, icon, badge, badgePulse, hint, onPress }:
 // ── Screen ───────────────────────────────────────────────────────────────────
 export default function HomeScreen() {
   const { data } = useWorkspace();
-  const insets = useSafeAreaInsets();
   const hapticsEnabled = data.settings.hapticsEnabled;
 
   const activeMatch = data.matches.find(
@@ -127,68 +126,74 @@ export default function HomeScreen() {
   };
 
   return (
-    <ScreenContainer style={styles.screen}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <Text style={styles.wordmark}>Skilltracker</Text>
-        <IconButton
-          name="settings"
-          accessibilityLabel="Open settings"
-          onPress={() => {
-            haptic.light(hapticsEnabled);
-            router.push("/settings");
-          }}
-        />
-      </View>
+    <View style={styles.root}>
+      <StatusBar barStyle="dark-content" backgroundColor={palette.background} />
+      <SafeAreaView edges={["top", "left", "right"]} style={styles.safeArea}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.wordmark}>Skilltracker</Text>
+          <IconButton
+            name="settings"
+            accessibilityLabel="Open settings"
+            onPress={() => {
+              haptic.light(hapticsEnabled);
+              router.push("/settings");
+            }}
+          />
+        </View>
 
-      {/* Two doors — each takes flex:1 so they split the remaining space equally */}
-      <View style={styles.doorsContainer}>
-        <Door
-          mode="match"
-          title="Match Day"
-          subtitle="Tactics, events & formations"
-          icon="sports-soccer"
-          badge={
-            activeMatch
-              ? activeMatch.status === "live"
-                ? "Live now"
-                : "Paused"
-              : undefined
-          }
-          badgePulse={activeMatch?.status === "live"}
-          hint={activeMatch ? "Continue your match" : "Set up or start a match"}
-          onPress={goMatch}
-        />
-        <Door
-          mode="develop"
-          title="Player Development"
-          subtitle="Assess skills & track growth"
-          icon="person-search"
-          badge={
-            needsAssessment > 0
-              ? `${needsAssessment} player${needsAssessment === 1 ? "" : "s"} due`
-              : totalPlayers === 0
-              ? "Add players"
-              : undefined
-          }
-          hint={
-            totalPlayers === 0
-              ? "Add your first player"
-              : needsAssessment > 0
-              ? "Assess a player now"
-              : "All players assessed this week"
-          }
-          onPress={goDevelop}
-        />
-      </View>
-    </ScreenContainer>
+        {/* Two doors */}
+        <View style={styles.doorsContainer}>
+          <Door
+            mode="match"
+            title="Match Day"
+            subtitle="Tactics, events & formations"
+            icon="sports-soccer"
+            badge={
+              activeMatch
+                ? activeMatch.status === "live"
+                  ? "Live now"
+                  : "Paused"
+                : undefined
+            }
+            badgePulse={activeMatch?.status === "live"}
+            hint={activeMatch ? "Continue your match" : "Set up or start a match"}
+            onPress={goMatch}
+          />
+          <Door
+            mode="develop"
+            title="Player Development"
+            subtitle="Assess skills & track growth"
+            icon="person-search"
+            badge={
+              needsAssessment > 0
+                ? `${needsAssessment} player${needsAssessment === 1 ? "" : "s"} due`
+                : totalPlayers === 0
+                ? "Add players"
+                : undefined
+            }
+            hint={
+              totalPlayers === 0
+                ? "Add your first player"
+                : needsAssessment > 0
+                ? "Assess a player now"
+                : "All players assessed this week"
+            }
+            onPress={goDevelop}
+          />
+        </View>
+      </SafeAreaView>
+    </View>
   );
 }
 
 // ── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  screen: {
+  root: {
+    flex: 1,
     backgroundColor: palette.background,
+  },
+  safeArea: {
     flex: 1,
   },
   header: {
@@ -196,6 +201,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
+    paddingTop: 10,
     paddingBottom: 12,
   },
   wordmark: {
@@ -213,7 +219,8 @@ const styles = StyleSheet.create({
   door: {
     flex: 1,
     borderRadius: 24,
-    overflow: "hidden",
+    padding: 28,
+    justifyContent: "space-between",
   },
   doorMatch: {
     backgroundColor: palette.navy,
@@ -226,11 +233,6 @@ const styles = StyleSheet.create({
   doorPressed: {
     opacity: 0.86,
     transform: [{ scale: 0.982 }],
-  },
-  doorContent: {
-    flex: 1,
-    padding: 28,
-    justifyContent: "space-between",
   },
   doorTopRow: {
     flexDirection: "row",
