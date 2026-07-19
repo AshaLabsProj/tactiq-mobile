@@ -285,5 +285,5 @@ const styles = StyleSheet.create({
   notFound: { flex: 1, padding: 24, alignItems: "center", justifyContent: "center", gap: 14 },
   notFoundTitle: { color: palette.ink, fontSize: 22, lineHeight: 28, fontWeight: "800" },
   // Wrapper forces the layout engine to render the button background correctly on iOS
-  actionBtnWrapper: { paddingBottom: 4, overflow: "visible" },
+  actionBtnWrapper: { paddingBottom: 4, overflow: "visible", backgroundColor: palette.background, borderRadius: 14 },
 });

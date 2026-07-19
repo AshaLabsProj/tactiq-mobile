@@ -1,32 +1,20 @@
 /**
  * Home — "Two Doors" entry point
+ * App name: Skilltracker
  *
- * The entire screen is two full-height cards:
+ * Two flex-1 cards fill the available screen:
  *   Top    → Match Day          (navy)  — tactics, events, formations
  *   Bottom → Player Development (green) — assess skills, track growth
- *
- * Each card shows a live status badge when relevant (active match / players due).
- * Tapping either card navigates into its dedicated sub-experience.
  */
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router } from "expo-router";
-import {
-  Dimensions,
-  Platform,
-  Pressable,
-  StatusBar,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { IconButton } from "@/components/mobile/ui";
 import { ScreenContainer } from "@/components/screen-container";
 import { useWorkspace } from "@/contexts/workspace-context";
 import { haptic } from "@/lib/haptics";
 import { palette } from "@/lib/palette";
-
-const { height: SCREEN_H } = Dimensions.get("window");
 
 // ── Door card ────────────────────────────────────────────────────────────────
 interface DoorProps {
@@ -65,7 +53,9 @@ function Door({ mode, title, subtitle, icon, badge, badgePulse, hint, onPress }:
           </View>
           {badge ? (
             <View style={[styles.badge, isMatch ? styles.badgeMatch : styles.badgeDevelop]}>
-              {badgePulse && <View style={[styles.pulseDot, isMatch ? styles.pulseDotMatch : styles.pulseDotDevelop]} />}
+              {badgePulse && (
+                <View style={[styles.pulseDot, isMatch ? styles.pulseDotMatch : styles.pulseDotDevelop]} />
+              )}
               <Text style={[styles.badgeText, isMatch ? styles.badgeTextMatch : styles.badgeTextDevelop]}>
                 {badge}
               </Text>
@@ -83,7 +73,7 @@ function Door({ mode, title, subtitle, icon, badge, badgePulse, hint, onPress }:
           </Text>
         </View>
 
-        {/* Hint chip at bottom */}
+        {/* Hint row at bottom */}
         <View style={[styles.hintRow, isMatch ? styles.hintRowMatch : styles.hintRowDevelop]}>
           <Text style={[styles.hintText, isMatch ? styles.hintTextMatch : styles.hintTextDevelop]}>
             {hint}
@@ -125,10 +115,8 @@ export default function HomeScreen() {
   const goMatch = () => {
     haptic.medium(hapticsEnabled);
     if (activeMatch) {
-      // Jump straight into the live match if one is already running
       router.push({ pathname: "/match/live/[id]", params: { id: activeMatch.id } });
     } else {
-      // Go to the Match Day hub so the coach can see history + start a new match
       router.push("/match/setup");
     }
   };
@@ -138,20 +126,11 @@ export default function HomeScreen() {
     router.push("/(tabs)/squad");
   };
 
-  // Calculate available height for the two doors
-  const statusBarH = Platform.OS === "android" ? (StatusBar.currentHeight ?? 24) : 0;
-  const topInset = insets.top + statusBarH;
-  const bottomInset = Math.max(insets.bottom, 8);
-  const tabBarH = 58 + bottomInset;
-  const headerH = 52; // wordmark row
-  const gapH = 12; // gap between doors
-  const available = SCREEN_H - topInset - tabBarH - headerH - 32; // 32 = vertical margins
-
   return (
     <ScreenContainer style={styles.screen}>
-      {/* Header row */}
-      <View style={[styles.header, { paddingTop: topInset + 8 }]}>
-        <Text style={styles.wordmark}>Tactiq Coach</Text>
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+        <Text style={styles.wordmark}>Skilltracker</Text>
         <IconButton
           name="settings"
           accessibilityLabel="Open settings"
@@ -162,8 +141,8 @@ export default function HomeScreen() {
         />
       </View>
 
-      {/* Two doors */}
-      <View style={[styles.doorsContainer, { height: available }]}>
+      {/* Two doors — each takes flex:1 so they split the remaining space equally */}
+      <View style={styles.doorsContainer}>
         <Door
           mode="match"
           title="Match Day"
@@ -218,16 +197,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingBottom: 12,
-    height: 52 + (Platform.OS === "android" ? (StatusBar.currentHeight ?? 24) : 0),
   },
   wordmark: {
-    color: palette.muted,
-    fontSize: 13,
-    fontWeight: "700",
-    letterSpacing: 1.4,
-    textTransform: "uppercase",
+    color: palette.ink,
+    fontSize: 22,
+    fontWeight: "800",
+    letterSpacing: -0.3,
   },
   doorsContainer: {
+    flex: 1,
     marginHorizontal: 16,
     marginBottom: 16,
     gap: 12,
