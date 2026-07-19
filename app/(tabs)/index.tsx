@@ -39,10 +39,10 @@ function Door({ mode, title, subtitle, icon, badge, badgePulse, hint, onPress }:
       onPress={onPress}
       style={({ pressed }) => [
         styles.door,
-        isMatch ? styles.doorMatch : styles.doorDevelop,
         pressed && styles.doorPressed,
       ]}
     >
+      <View style={[styles.doorInner, isMatch ? styles.doorMatch : styles.doorDevelop]}>
       {/* Top row: icon + badge */}
       <View style={styles.doorTopRow}>
         <View style={[styles.iconCircle, isMatch ? styles.iconCircleMatch : styles.iconCircleDevelop]}>
@@ -84,6 +84,7 @@ function Door({ mode, title, subtitle, icon, badge, badgePulse, hint, onPress }:
           size={16}
           color={isMatch ? "rgba(255,255,255,0.55)" : palette.primary}
         />
+      </View>
       </View>
     </Pressable>
   );
@@ -219,11 +220,16 @@ const styles = StyleSheet.create({
   door: {
     flex: 1,
     borderRadius: 24,
+    overflow: "hidden",
+  },
+  doorInner: {
+    flex: 1,
+    borderRadius: 24,
     padding: 28,
     justifyContent: "space-between",
   },
   doorMatch: {
-    backgroundColor: palette.navy,
+    backgroundColor: "#0D2137",
   },
   doorDevelop: {
     backgroundColor: palette.primarySoft,
