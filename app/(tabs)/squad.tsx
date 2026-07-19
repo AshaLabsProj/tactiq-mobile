@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import {
+  AppButton,
   AppCard,
   PageHeader,
   PlayerAvatar,
@@ -77,9 +78,9 @@ export default function SquadScreen() {
         ListHeaderComponent={
           <View style={styles.headerContent}>
             <PageHeader
-              eyebrow="Your team"
-              title="Squad"
-              subtitle="Find a player and see what to work on next."
+              eyebrow="PLAYER DEVELOPMENT"
+              title="Your Squad"
+              subtitle="Select a player to assess or review their progress."
             />
 
             <AppCard tone="green" style={styles.teamCard}>

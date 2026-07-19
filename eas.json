@@ -33,7 +33,11 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "seyi@asha-labs.com"
+        "appleId": "seyi@asha-labs.com",
+        "ascApiKeyIssuerId": "bbc84569-abe2-4b21-bac0-6ae8795b6514",
+        "ascApiKeyId": "67LX4FM3VK",
+        "ascApiKeyPath": "/home/ubuntu/AuthKey_67LX4FM3VK.p8",
+        "ascAppId": "6792054650"
       },
       "android": {
         "track": "internal"
