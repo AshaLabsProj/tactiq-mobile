@@ -1,289 +1,316 @@
+/**
+ * Player Development Profile — redesigned 2026-08-08
+ */
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
-import { Share, ScrollView, StyleSheet, Text, View } from "react-native";
-
+import { useMemo } from "react";
+import {
+  Pressable,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SkillRadar } from "@/components/charts/SkillRadar";
+import { SkillTrendLine } from "@/components/charts/SkillTrendLine";
 import {
   AppButton,
-  AppCard,
+  AssessmentFreshness,
+  DevelopmentDelta,
+  EmptyState,
+  FocusCard,
   IconButton,
   PlayerAvatar,
-  ProgressBar,
   SectionHeader,
-  StatusChip,
-  mobileStyles,
-} from "@/components/mobile/ui";
-import { ScreenContainer } from "@/components/screen-container";
+  SkillBar,
+  StrengthCard,
+} from "@/components/ui";
 import { useWorkspace } from "@/contexts/workspace-context";
 import {
   assessmentsForPlayer,
   averageRatings,
+  improvementBetween,
+  latestAssessmentForPlayer,
   strongestAndFocus,
 } from "@/lib/insights";
-import { haptic } from "@/lib/haptics";
-import { palette } from "@/lib/palette";
-import { SKILL_LABELS, type SkillKey } from "@/types/models";
+import { palette, radius, spacing, typography } from "@/lib/palette";
+import type { SkillKey } from "@/types/models";
+import { SKILL_LABELS } from "@/types/models";
 
-const SKILL_KEYS = Object.keys(SKILL_LABELS) as SkillKey[];
-
-// ─── Skill key shorthand mapping ─────────────────────────────────────────────
-// Payload format: {n, p?, t?, d, r:{bc,pa,re,dr,de,dm}, no?, cn?}
 const SKILL_SHORT: Record<SkillKey, string> = {
-  ballControl:    "bc",
-  passing:        "pa",
-  receiving:      "re",
-  dribbling:      "dr",
-  defending:      "de",
-  decisionMaking: "dm",
+  ballControl: "bc", passing: "pa", receiving: "re",
+  dribbling: "dr", defending: "de", decisionMaking: "dm",
 };
 
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(value));
-}
+const SKILL_CUES: Record<SkillKey, { strong: string; focus: string }> = {
+  ballControl: {
+    strong: "Comfortable receiving and controlling in tight spaces.",
+    focus: "Work on first touch — receive and set the ball in one movement.",
+  },
+  passing: {
+    strong: "Accurate distribution, good weight and timing.",
+    focus: "Vary the pace and angle of passes to create better options.",
+  },
+  receiving: {
+    strong: "Opens body well, scans before receiving.",
+    focus: "Scan before the ball arrives so you know your next action.",
+  },
+  dribbling: {
+    strong: "Confident carrying the ball at pace.",
+    focus: "Work on changing direction while keeping close control.",
+  },
+  defending: {
+    strong: "Strong body position and recovery runs.",
+    focus: "Stay goal-side and delay before committing to a challenge.",
+  },
+  decisionMaking: {
+    strong: "Reads the game well, makes quick and accurate choices.",
+    focus: "Slow down to recognise when to pass, carry, or release.",
+  },
+};
 
-/**
- * Encode a player assessment as a URL-safe base64 JSON payload.
- * Uses btoa which is available in React Native's Hermes engine.
- */
-function buildSharePayload(opts: {
-  name: string;
-  position?: string;
-  teamName?: string;
-  date: string;
-  ratings: Record<SkillKey, number>;
-  note?: string;
-}): string {
-  const r: Record<string, number> = {};
-  for (const key of SKILL_KEYS) {
-    r[SKILL_SHORT[key]] = opts.ratings[key];
-  }
-
-  const obj: Record<string, unknown> = {
-    n: opts.name,
-    d: opts.date,
-    r,
-  };
-  if (opts.position) obj.p = opts.position;
-  if (opts.teamName) obj.t = opts.teamName;
-  if (opts.note?.trim()) obj.no = opts.note.trim();
-  obj.cn = "Coach";
-
-  const json = JSON.stringify(obj);
-  // URL-safe base64 (replace + → -, / → _, strip =)
-  const b64 = btoa(unescape(encodeURIComponent(json)));
-  return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
-export default function PlayerDetailScreen() {
+export default function PlayerProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data } = useWorkspace();
-  const player = data.players.find((item) => item.id === id);
-  const history = player ? assessmentsForPlayer(data.assessments, player.id) : [];
-  const latest = history[0];
-  const overall = latest ? averageRatings(latest.ratings) : 0;
-  const signals = latest ? strongestAndFocus(latest.ratings) : null;
+  const insets = useSafeAreaInsets();
+  const haptic = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-  // Resolve team name for the share payload
+  const player = data.players.find((p) => p.id === id);
+  const allAssessments = useMemo(
+    () => assessmentsForPlayer(data.assessments, id ?? ""),
+    [data.assessments, id],
+  );
+  const latest = allAssessments[0];
+  const previous = allAssessments[1];
+  const avg = latest ? averageRatings(latest.ratings) : null;
+  const delta = improvementBetween(allAssessments);
+  const { strongest, focus } = latest
+    ? strongestAndFocus(latest.ratings)
+    : { strongest: null as SkillKey | null, focus: null as SkillKey | null };
+
   const team = player ? data.teams.find((t) => t.id === player.teamId) : undefined;
 
-  async function handleShare() {
+  const handleShare = async () => {
+    haptic();
     if (!player || !latest) return;
-    haptic.light(data.settings.hapticsEnabled);
-
-    const payload = buildSharePayload({
-      name: player.name,
-      position: player.position,
-      teamName: team?.name,
-      date: latest.createdAt,
-      ratings: latest.ratings,
-      note: latest.note,
-    });
-
-    const url = `https://soccerskilltracker.com/share/${payload}`;
-
+    const r: Record<string, number> = {};
+    for (const key of Object.keys(SKILL_LABELS) as SkillKey[]) {
+      r[SKILL_SHORT[key]] = latest.ratings[key];
+    }
+    const payload = btoa(unescape(encodeURIComponent(JSON.stringify({
+      n: player.name, p: player.position, t: team?.name,
+      d: latest.createdAt, r, no: latest.note, cn: "Coach",
+    })))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     try {
       await Share.share({
-        message: `${player.name}'s latest Tactiq Coach assessment:\n${url}`,
-        url,
+        message: `${player.name}'s latest Skilltracker assessment:\nhttps://soccerskilltracker.com/share/${payload}`,
+        url: `https://soccerskilltracker.com/share/${payload}`,
       });
-    } catch {
-      // User dismissed the share sheet — no action needed.
-    }
-  }
+    } catch { /* dismissed */ }
+  };
 
   if (!player) {
     return (
-      <ScreenContainer edges={["top", "bottom", "left", "right"]}>
-        <View style={styles.notFound}>
-          <MaterialIcons name="person-off" size={40} color={palette.muted} />
-          <Text style={styles.notFoundTitle}>Player not found</Text>
-          <AppButton label="Back to squad" variant="secondary" onPress={() => router.replace("/(tabs)/squad")} />
-        </View>
-      </ScreenContainer>
+      <View style={[styles.root, { paddingTop: insets.top }]}>
+        <EmptyState icon="person-off" title="Player not found" />
+      </View>
     );
   }
 
   return (
-    <ScreenContainer edges={["top", "bottom", "left", "right"]}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={mobileStyles.screenContent}
-      >
-        <View style={styles.topBar}>
-          <IconButton name="arrow-back" accessibilityLabel="Back" onPress={() => router.back()} />
-          <Text style={styles.topBarTitle}>Player</Text>
-          <View style={styles.topBarSpacer} />
+    <View style={[styles.root, { paddingTop: insets.top }]}>
+      <View style={styles.header}>
+        <IconButton name="arrow-back" accessibilityLabel="Go back" onPress={() => { haptic(); router.back(); }} variant="ghost" />
+        <Text style={styles.headerTitle}>Player</Text>
+        <View style={styles.headerRight}>
+          {latest ? (
+            <IconButton name="share" accessibilityLabel="Share player profile" onPress={handleShare} variant="ghost" />
+          ) : <View style={{ width: 44 }} />}
         </View>
+      </View>
 
-        <View style={styles.identity}>
-          <PlayerAvatar name={player.name} accent={player.accent} size={78} />
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 100 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Identity */}
+        <View style={styles.identitySection}>
+          <PlayerAvatar name={player.name} accent={player.accent} size="xl" />
           <View style={styles.identityCopy}>
             <View style={styles.nameRow}>
-              <Text style={styles.playerName}>{player.name}</Text>
-              <StatusChip label={`#${player.number}`} tone="green" />
+              <Text style={styles.playerName} numberOfLines={1}>{player.name}</Text>
+              <View style={styles.numberBadge}>
+                <Text style={styles.numberBadgeText}>#{player.number}</Text>
+              </View>
             </View>
-            <Text style={styles.playerMeta}>{player.position}</Text>
+            <Text style={styles.playerPosition}>{player.position}</Text>
+            <View style={styles.identityMeta}>
+              {avg !== null ? (
+                <View style={styles.levelBadge}>
+                  <Text style={styles.levelValue}>{avg.toFixed(1)}</Text>
+                  <DevelopmentDelta delta={delta} />
+                </View>
+              ) : null}
+              <AssessmentFreshness createdAt={latest?.createdAt} />
+            </View>
           </View>
         </View>
+
+        {/* Assess CTA */}
+        <AppButton
+          label={latest ? "Reassess Player" : "Create First Assessment"}
+          onPress={() => { haptic(); router.push({ pathname: "/assess/[playerId]" as any, params: { playerId: player.id } }); }}
+          variant="primary"
+          size="default"
+          icon="assignment"
+        />
 
         {latest ? (
           <>
-            <View style={styles.snapshotRow}>
-              <AppCard style={styles.snapshotCard} tone="green">
-                <Text style={styles.snapshotValue}>{overall.toFixed(1)}</Text>
-                <Text style={styles.snapshotLabel}>Current level</Text>
-              </AppCard>
-              <AppCard style={styles.snapshotCard} tone="amber">
-                <Text style={styles.snapshotFocus}>{signals ? SKILL_LABELS[signals.focus] : "—"}</Text>
-                <Text style={styles.snapshotLabel}>Next focus</Text>
-              </AppCard>
+            {/* Radar */}
+            <View style={styles.radarSection}>
+              <SectionHeader title="Development Shape" />
+              {previous ? <Text style={styles.radarHint}>Solid = current · Dashed = previous</Text> : <Text style={styles.radarHint}>Tap a skill to see detail</Text>}
+              <View style={styles.radarContainer}>
+                <SkillRadar
+                  ratings={latest.ratings}
+                  previousRatings={previous?.ratings}
+                  size={280}
+                  onSkillPress={(key) => { haptic(); router.push({ pathname: "/player/[id]/skill/[key]" as any, params: { id: player.id, key } }); }}
+                />
+              </View>
             </View>
 
-            <View style={styles.sectionBlock}>
-              <SectionHeader title="Latest assessment" />
-              <AppCard style={styles.skillCard}>
-                <View style={styles.assessmentMetaRow}>
-                  <Text style={styles.assessmentDate}>{formatDate(latest.createdAt)}</Text>
-                  <StatusChip
-                    label={signals ? `Strength: ${SKILL_LABELS[signals.strongest]}` : "Saved"}
-                    tone="green"
-                  />
+            {/* Strength + Focus */}
+            {strongest && focus ? (
+              <View style={styles.sfRow}>
+                <View style={styles.sfCard}>
+                  <StrengthCard skill={SKILL_LABELS[strongest]} observation={SKILL_CUES[strongest].strong} onPress={() => { haptic(); router.push({ pathname: "/player/[id]/skill/[key]" as any, params: { id: player.id, key: strongest } }); }} />
                 </View>
-                {SKILL_KEYS.map((skill) => (
-                  <View key={skill} style={styles.skillRow}>
-                    <View style={styles.skillLabelRow}>
-                      <Text style={styles.skillName}>{SKILL_LABELS[skill]}</Text>
-                      <Text style={styles.skillValue}>{latest.ratings[skill]}/3</Text>
-                    </View>
-                    <ProgressBar
-                      value={latest.ratings[skill]}
-                      color={skill === signals?.focus ? palette.amber : palette.primary}
-                    />
-                  </View>
-                ))}
-                {latest.note ? (
-                  <View style={styles.noteBox}>
-                    <MaterialIcons name="format-quote" size={20} color={palette.primary} />
-                    <Text style={styles.noteText}>{latest.note}</Text>
-                  </View>
-                ) : null}
-              </AppCard>
+                <View style={styles.sfCard}>
+                  <FocusCard skill={SKILL_LABELS[focus]} cue={SKILL_CUES[focus].focus} onPress={() => { haptic(); router.push({ pathname: "/player/[id]/skill/[key]" as any, params: { id: player.id, key: focus } }); }} />
+                </View>
+              </View>
+            ) : null}
+
+            {/* Trend */}
+            <View style={styles.trendSection}>
+              <SectionHeader title="Development Trend" />
+              <SkillTrendLine assessments={allAssessments} width={340} height={160} />
             </View>
 
-            {/* Share button — only shown when there is a latest assessment */}
-            <AppButton
-              label="Share with player / parent"
-              icon="share"
-              variant="secondary"
-              onPress={handleShare}
-            />
+            {/* Skill bars */}
+            <View style={styles.skillsSection}>
+              <SectionHeader title="Skill Breakdown" />
+              {(Object.keys(SKILL_LABELS) as SkillKey[]).map((key) => {
+                const prevRating = previous?.ratings[key];
+                const currRating = latest.ratings[key];
+                const skillDelta = prevRating !== undefined ? currRating - prevRating : 0;
+                return (
+                  <SkillBar
+                    key={key}
+                    label={SKILL_LABELS[key]}
+                    rating={currRating as 1 | 2 | 3}
+                    delta={skillDelta}
+                    onPress={() => { haptic(); router.push({ pathname: "/player/[id]/skill/[key]" as any, params: { id: player.id, key } }); }}
+                  />
+                );
+              })}
+            </View>
+
+            {/* Observation */}
+            {latest.note ? (
+              <View style={styles.observationSection}>
+                <SectionHeader title="Latest Observation" />
+                <View style={styles.observationCard}>
+                  <MaterialIcons name="format-quote" size={20} color={palette.primary} />
+                  <Text style={styles.observationText}>{latest.note}</Text>
+                  <Text style={styles.observationDate}>
+                    {new Date(latest.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+
+            {/* History */}
+            <View style={styles.historySection}>
+              <SectionHeader title="Assessment History" />
+              {allAssessments.slice(0, 4).map((assessment, idx) => {
+                const assessAvg = averageRatings(assessment.ratings);
+                const prevA = allAssessments[idx + 1];
+                const d = prevA ? assessAvg - averageRatings(prevA.ratings) : 0;
+                return (
+                  <Pressable key={assessment.id} accessibilityRole="button" onPress={() => haptic()} style={({ pressed }) => [styles.historyRow, pressed && styles.pressed]}>
+                    <View style={styles.historyLeft}>
+                      <Text style={styles.historyDate}>
+                        {new Date(assessment.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      </Text>
+                      {assessment.note ? <Text style={styles.historyNote} numberOfLines={1}>{assessment.note}</Text> : null}
+                    </View>
+                    <View style={styles.historyRight}>
+                      <Text style={styles.historyScore}>{assessAvg.toFixed(1)}</Text>
+                      <DevelopmentDelta delta={d} />
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
           </>
         ) : (
-          <AppCard tone="amber" style={styles.emptyCard}>
-            <View style={styles.emptyIcon}>
-              <MaterialIcons name="fact-check" size={26} color="#8E5A0E" />
-            </View>
-            <View style={styles.emptyCopy}>
-              <Text style={styles.emptyTitle}>No assessment yet</Text>
-              <Text style={styles.emptyBody}>Create a baseline in about one minute.</Text>
-            </View>
-          </AppCard>
-        )}
-
-        {history.length > 1 ? (
-          <View style={styles.sectionBlock}>
-            <SectionHeader title="Previous reviews" />
-            <AppCard style={styles.historyCard}>
-              {history.slice(1).map((assessment, index) => (
-                <View key={assessment.id} style={[styles.historyRow, index > 0 && styles.historyDivider]}>
-                  <View>
-                    <Text style={styles.historyDate}>{formatDate(assessment.createdAt)}</Text>
-                    <Text numberOfLines={1} style={styles.historyNote}>
-                      {assessment.note || "Assessment saved"}
-                    </Text>
-                  </View>
-                  <Text style={styles.historyScore}>{averageRatings(assessment.ratings).toFixed(1)}</Text>
-                </View>
-              ))}
-            </AppCard>
+          <View style={styles.noAssessmentCard}>
+            <MaterialIcons name="assignment" size={32} color={palette.amber} />
+            <Text style={styles.noAssessmentTitle}>No assessment yet</Text>
+            <Text style={styles.noAssessmentBody}>
+              Create a baseline assessment to start tracking {player.name.split(" ")[0]}'s development.
+            </Text>
           </View>
-        ) : null}
-
-        <View style={styles.actionBtnWrapper}>
-          <AppButton
-            label={latest ? "Add assessment" : "Create first assessment"}
-            icon="add"
-            onPress={() => {
-              haptic.light(data.settings.hapticsEnabled);
-              router.push({ pathname: "/assessment-qa", params: { playerId: player.id } });
-            }}
-          />
-        </View>
+        )}
       </ScrollView>
-    </ScreenContainer>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  topBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  topBarTitle: { color: palette.ink, fontSize: 16, lineHeight: 21, fontWeight: "700" },
-  topBarSpacer: { width: 44, height: 44 },
-  identity: { flexDirection: "row", alignItems: "center", gap: 16 },
-  identityCopy: { flex: 1, gap: 4 },
-  nameRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8 },
-  playerName: { color: palette.ink, fontSize: 27, lineHeight: 33, fontWeight: "800", letterSpacing: -0.4 },
-  playerMeta: { color: palette.muted, fontSize: 15, lineHeight: 21 },
-  snapshotRow: { flexDirection: "row", gap: 12 },
-  snapshotCard: { flex: 1, minHeight: 112, justifyContent: "space-between", gap: 10 },
-  snapshotValue: { color: palette.ink, fontSize: 30, lineHeight: 36, fontWeight: "800", fontVariant: ["tabular-nums"] },
-  snapshotFocus: { color: palette.ink, fontSize: 17, lineHeight: 23, fontWeight: "800" },
-  snapshotLabel: { color: palette.muted, fontSize: 13, lineHeight: 18, fontWeight: "600" },
-  sectionBlock: { gap: 10 },
-  skillCard: { gap: 16 },
-  assessmentMetaRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
-  assessmentDate: { color: palette.muted, fontSize: 13, lineHeight: 18, fontWeight: "600" },
-  skillRow: { gap: 7 },
-  skillLabelRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  skillName: { color: palette.ink, fontSize: 14, lineHeight: 19, fontWeight: "600" },
-  skillValue: { color: palette.muted, fontSize: 12, lineHeight: 16, fontWeight: "700", fontVariant: ["tabular-nums"] },
-  noteBox: { borderRadius: 15, backgroundColor: palette.surfaceAlt, padding: 14, flexDirection: "row", alignItems: "flex-start", gap: 9 },
-  noteText: { flex: 1, color: palette.ink, fontSize: 14, lineHeight: 20 },
-  emptyCard: { flexDirection: "row", alignItems: "center", gap: 12 },
-  emptyIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: "rgba(255,255,255,0.7)", alignItems: "center", justifyContent: "center" },
-  emptyCopy: { flex: 1 },
-  emptyTitle: { color: palette.ink, fontSize: 16, lineHeight: 21, fontWeight: "700" },
-  emptyBody: { color: palette.muted, fontSize: 13, lineHeight: 18, marginTop: 2 },
-  historyCard: { paddingVertical: 4 },
-  historyRow: { minHeight: 64, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 10, gap: 12 },
-  historyDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: palette.border },
-  historyDate: { color: palette.ink, fontSize: 14, lineHeight: 19, fontWeight: "700" },
-  historyNote: { color: palette.muted, fontSize: 12, lineHeight: 17, marginTop: 2, maxWidth: 260 },
-  historyScore: { color: palette.primaryDark, fontSize: 18, lineHeight: 23, fontWeight: "800", fontVariant: ["tabular-nums"] },
-  notFound: { flex: 1, padding: 24, alignItems: "center", justifyContent: "center", gap: 14 },
-  notFoundTitle: { color: palette.ink, fontSize: 22, lineHeight: 28, fontWeight: "800" },
-  // Wrapper forces the layout engine to render the button background correctly on iOS
-  actionBtnWrapper: { paddingBottom: 4, overflow: "visible", backgroundColor: palette.background, borderRadius: 14 },
+  root: { flex: 1, backgroundColor: palette.background },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.sm, height: 52 },
+  headerTitle: { ...typography.bodyMed, color: palette.ink },
+  headerRight: { width: 44, alignItems: "flex-end" },
+  scroll: { flex: 1 },
+  content: { paddingHorizontal: spacing.base, paddingTop: spacing.sm, gap: spacing.lg },
+  identitySection: { flexDirection: "row", alignItems: "flex-start", gap: spacing.base },
+  identityCopy: { flex: 1, gap: spacing.sm },
+  nameRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  playerName: { ...typography.displayMd, color: palette.ink, flex: 1 },
+  numberBadge: { backgroundColor: palette.primarySoft, borderRadius: radius.md, paddingHorizontal: spacing.sm, paddingVertical: 3 },
+  numberBadgeText: { ...typography.caption, color: palette.primary, fontWeight: "700" as const },
+  playerPosition: { ...typography.body, color: palette.muted },
+  identityMeta: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  levelBadge: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  levelValue: { ...typography.sectionHead, color: palette.ink, fontVariant: ["tabular-nums"] as any },
+  radarSection: { gap: spacing.sm },
+  radarHint: { ...typography.caption, color: palette.muted },
+  radarContainer: { alignItems: "center" },
+  sfRow: { flexDirection: "row", gap: spacing.sm },
+  sfCard: { flex: 1 },
+  trendSection: { gap: spacing.sm },
+  skillsSection: { gap: spacing.md },
+  observationSection: { gap: spacing.sm },
+  observationCard: { backgroundColor: palette.surface, borderRadius: radius.xl, borderWidth: StyleSheet.hairlineWidth, borderColor: palette.border, padding: spacing.base, gap: spacing.sm },
+  observationText: { ...typography.body, color: palette.ink, lineHeight: 24, fontStyle: "italic" },
+  observationDate: { ...typography.caption, color: palette.muted },
+  historySection: { gap: spacing.sm },
+  historyRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: palette.surface, borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: palette.border, padding: spacing.md },
+  historyLeft: { flex: 1, gap: 3 },
+  historyDate: { ...typography.bodyMed, color: palette.ink },
+  historyNote: { ...typography.caption, color: palette.muted },
+  historyRight: { alignItems: "flex-end", gap: 3 },
+  historyScore: { ...typography.cardTitle, color: palette.ink, fontVariant: ["tabular-nums"] as any },
+  noAssessmentCard: { backgroundColor: palette.amberSoft, borderRadius: radius.xl, borderWidth: 1, borderColor: "#EDD5AC", padding: spacing.xl, alignItems: "center", gap: spacing.md },
+  noAssessmentTitle: { ...typography.sectionHead, color: palette.amberDark },
+  noAssessmentBody: { ...typography.body, color: palette.amberDark, textAlign: "center", lineHeight: 22, opacity: 0.85 },
+  pressed: { opacity: 0.72 },
 });
