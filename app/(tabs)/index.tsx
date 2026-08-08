@@ -18,6 +18,7 @@ import { router } from "expo-router";
 import { useMemo } from "react";
 import {
   Pressable,
+  TouchableOpacity,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -210,7 +211,7 @@ export default function HomeScreen() {
               haptic();
               router.push({ pathname: "/match/live/[id]", params: { id: activeMatch.id } });
             }}
-            style={({ pressed }) => [styles.matchCard, styles.matchCardLive, pressed && styles.pressed]}
+            style={[styles.matchCard, styles.matchCardLive]}
           >
             <View style={styles.matchCardHeader}>
               <View style={styles.livePill}>
@@ -228,7 +229,7 @@ export default function HomeScreen() {
               haptic();
               router.push("/(tabs)/match" as any);
             }}
-            style={({ pressed }) => [styles.matchCard, pressed && styles.pressed]}
+            style={styles.matchCard}
           >
             <View style={styles.matchCardHeader}>
               <Text style={styles.matchCardLabel}>UPCOMING MATCH</Text>
@@ -249,18 +250,19 @@ export default function HomeScreen() {
             </Text>
           </Pressable>
         ) : (
-          <Pressable
+          <TouchableOpacity
+            activeOpacity={0.8}
             accessibilityRole="button"
             onPress={() => { haptic(); router.push("/match/setup"); }}
-            style={({ pressed }) => [styles.matchCard, pressed && styles.pressed]}
+            style={styles.matchCard}
           >
             <View style={styles.matchCardHeader}>
               <Text style={styles.matchCardLabel}>MATCH TRACKING</Text>
-              <MaterialIcons name="sports-soccer" size={20} color={palette.matchMuted} />
+              <MaterialIcons name="sports-soccer" size={20} color="#FFFFFF" />
             </View>
             <Text style={styles.matchCardOpponent}>No match scheduled</Text>
             <Text style={styles.matchCardCta}>Tap to set up a match →</Text>
-          </Pressable>
+          </TouchableOpacity>
         )}
 
         {/* TEAM SNAPSHOT */}

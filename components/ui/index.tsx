@@ -14,6 +14,7 @@ import type { ComponentProps, ReactNode } from "react";
 import {
   ActivityIndicator,
   Pressable,
+  TouchableOpacity,
   StyleSheet,
   Text,
   View,
@@ -438,17 +439,17 @@ export function AppButton({
   const iconSize = size === "compact" ? 16 : size === "large" ? 22 : 18;
 
   return (
-    <Pressable
+    <TouchableOpacity
+      activeOpacity={0.8}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       onPress={onPress}
       disabled={disabled}
-      style={({ pressed }) => [
+      style={[
         styles.btn,
         variantStyle,
         sizeStyle,
         style,
-        pressed && styles.btnPressed,
         disabled && styles.btnDisabled,
       ]}
     >
@@ -457,7 +458,7 @@ export function AppButton({
         {label}
       </Text>
       {iconRight ? <MaterialIcons name={iconRight} size={iconSize} color={labelColor} /> : null}
-    </Pressable>
+    </TouchableOpacity>
   );
 }
 

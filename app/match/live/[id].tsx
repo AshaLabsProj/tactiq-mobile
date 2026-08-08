@@ -164,7 +164,7 @@ export default function LiveMatchScreen() {
       )}
 
       {toastMsg ? (
-        <Animated.View style={[styles.toast, { opacity: toastOpacity, bottom: insets.bottom + 100 }]}>
+        <Animated.View style={[styles.toast, { opacity: toastOpacity, bottom: insets.bottom + 140 }]}>
           <Text style={styles.toastText}>{toastMsg}</Text>
           <Pressable accessibilityRole="button" accessibilityLabel="Undo last event" onPress={handleUndo} style={({ pressed }) => [styles.undoBtn, pressed && styles.pressed]}>
             <Text style={styles.undoBtnText}>UNDO</Text>
@@ -173,11 +173,11 @@ export default function LiveMatchScreen() {
       ) : null}
 
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + spacing.sm }]}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Pause match" onPress={() => { haptic(Haptics.ImpactFeedbackStyle.Light); setMatchStatus(id!, match.status === "live" ? "paused" : "live"); }} style={({ pressed }) => [styles.pauseBtn, pressed && styles.pressed]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Pause match" onPress={() => { haptic(Haptics.ImpactFeedbackStyle.Light); setMatchStatus(id!, match.status === "live" ? "paused" : "live"); }} style={styles.pauseBtn}>
           <MaterialIcons name={match.status === "live" ? "pause" : "play-arrow"} size={22} color={palette.white} />
           <Text style={styles.pauseBtnText}>{match.status === "live" ? "Pause" : "Resume"}</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel="End match" onPress={handleEndMatch} style={({ pressed }) => [styles.endMatchBtn, pressed && styles.pressed]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="End match" onPress={handleEndMatch} style={styles.endMatchBtn}>
           <MaterialIcons name="stop" size={22} color={palette.coral} />
           <Text style={styles.endMatchBtnText}>End Match</Text>
         </Pressable>
