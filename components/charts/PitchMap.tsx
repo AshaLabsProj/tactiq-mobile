@@ -8,7 +8,7 @@
  *   <PitchMap selectedZone={{ third, channel }} readonly />
  *   <PitchHeatmap events={matchEvents} filter="progression" />
  */
-import { StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import Svg, {
   Circle,
   Defs,
@@ -220,6 +220,34 @@ export function PitchMap({
             })
           : null}
       </Svg>
+      {/* Native touch overlays — SVG onPress is unreliable on iOS */}
+      {!readonly && onZonePress
+        ? THIRDS.map((third) =>
+            CHANNELS.map((channel) => {
+              const ti = thirdIndex(third);
+              const ci = channelIndex(channel);
+              const sel = isSelected(third, channel);
+              return (
+                <Pressable
+                  key={`touch-${third}-${channel}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${THIRD_LABELS[third]} ${CHANNEL_LABELS[channel]} zone`}
+                  onPress={() => onZonePress(third, channel)}
+                  style={{
+                    position: "absolute",
+                    left: ci * channelW,
+                    top: ti * thirdH,
+                    width: channelW,
+                    height: thirdH,
+                    backgroundColor: sel ? "rgba(255,255,255,0.25)" : "transparent",
+                    borderWidth: sel ? 2 : 0,
+                    borderColor: "#FFFFFF",
+                  }}
+                />
+              );
+            }),
+          )
+        : null}
     </View>
   );
 }

@@ -807,14 +807,14 @@ const styles = StyleSheet.create({
   btnDefault: { minHeight: 54 },
   btnCompact: { minHeight: 44, borderRadius: radius.md, paddingHorizontal: spacing.md },
   btnLarge: { minHeight: 64, borderRadius: radius.xl, paddingHorizontal: spacing.xl },
-  btnPrimary: { backgroundColor: palette.primary, borderColor: palette.primary },
+  btnPrimary: { backgroundColor: "#00A878", borderColor: "#00A878" },
   btnSecondary: { backgroundColor: palette.surface, borderColor: palette.border },
   btnDestructive: { backgroundColor: palette.coral, borderColor: palette.coral },
   btnGhost: { backgroundColor: "transparent", borderColor: "transparent" },
   btnLabel: { fontSize: 16, lineHeight: 21, fontWeight: "700" as const },
   btnLabelLg: { fontSize: 18, lineHeight: 24 },
   btnPressed: { transform: [{ scale: 0.98 }], opacity: 0.88 },
-  btnDisabled: { opacity: 0.42 },
+  btnDisabled: { opacity: 0.55 },
 
   // IconButton
   iconBtn: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },

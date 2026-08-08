@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
   playerRight: { alignItems: "flex-end", gap: spacing.sm },
   playerScore: { alignItems: "flex-end", gap: 2 },
   playerScoreValue: { ...typography.cardTitle, color: palette.ink, fontVariant: ["tabular-nums"] as any },
-  assessBtn: { backgroundColor: palette.primary, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 7, minHeight: 34, justifyContent: "center" },
-  assessBtnText: { ...typography.caption, color: palette.white, fontWeight: "700" as const },
+  assessBtn: { backgroundColor: "#00875A", borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 8, minHeight: 36, justifyContent: "center", alignItems: "center" },
+  assessBtnText: { fontSize: 13, color: "#FFFFFF", fontWeight: "700" as const, letterSpacing: 0.3 },
   pressed: { opacity: 0.72 },
 });
