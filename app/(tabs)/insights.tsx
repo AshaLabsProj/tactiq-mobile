@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   playerInfo: { flex: 1 },
   playerName: { ...typography.bodyMed, color: palette.ink },
   playerPosition: { ...typography.caption, color: palette.muted },
-  overdueChip: { backgroundColor: palette.coralSoft, borderRadius: radius.full, paddingHorizontal: 6, paddingVertical: 2 },
+  overdueChip: { backgroundColor: palette.coralSoft, borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 3, alignSelf: "flex-start" },
   overdueChipText: { ...typography.eyebrow, color: palette.coral, fontSize: 10 },
   pressed: { opacity: 0.72 },
 });

@@ -55,8 +55,10 @@ export function SkillRadar({
   size = 260,
   onSkillPress,
 }: SkillRadarProps) {
-  const cx = size / 2;
-  const cy = size / 2;
+  const pad = 40;
+  const svgSize = size + pad * 2;
+  const cx = svgSize / 2;
+  const cy = svgSize / 2;
   const maxR = size * 0.34;
   const labelR = size * 0.46;
 
@@ -80,8 +82,8 @@ export function SkillRadar({
   const fillColor = avgRating >= 2.5 ? palette.strong : avgRating >= 1.5 ? palette.secure : palette.developing;
 
   return (
-    <View style={[styles.container, { width: size, height: size }]}>
-      <Svg width={size} height={size}>
+    <View style={[styles.container, { width: svgSize, height: svgSize }]}>
+      <Svg width={svgSize} height={svgSize}>
         {/* Grid rings */}
         {[1, 2, 3].map((level) => {
           const r = (level / LEVELS) * maxR;
@@ -152,7 +154,7 @@ export function SkillRadar({
               y={baseY + li * 14}
               textAnchor={textAnchor}
               fill={palette.inkMid}
-              fontSize={10}
+              fontSize={11}
               fontWeight="600"
             >
               {line}

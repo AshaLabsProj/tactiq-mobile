@@ -479,10 +479,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  matchCardLabel: { ...typography.eyebrow, color: palette.matchMuted },
+  matchCardLabel: { ...typography.eyebrow, color: "rgba(255,255,255,0.7)" },
   matchCardOpponent: { ...typography.sectionHead, color: palette.white },
-  matchCardDate: { ...typography.caption, color: palette.matchMuted },
-  matchCardCta: { ...typography.caption, color: palette.matchMuted },
+  matchCardDate: { ...typography.caption, color: "rgba(255,255,255,0.7)" },
+  matchCardCta: { ...typography.caption, color: "rgba(255,255,255,0.75)" },
   livePill: {
     flexDirection: "row",
     alignItems: "center",

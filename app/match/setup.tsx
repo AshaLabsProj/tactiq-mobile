@@ -142,19 +142,22 @@ export default function MatchSetupScreen() {
             <Text style={styles.tipBody}>Each event takes two taps: tap a pitch zone, then tap the outcome. Undo at any time.</Text>
           </View>
         </View>
+
+        {/* Start Match CTA */}
+        <View style={styles.ctaSection}>
+          <AppButton
+            label={loading ? "Starting…" : "Start Match"}
+            onPress={handleStart}
+            variant="primary"
+            size="large"
+            icon="sports-soccer"
+            disabled={!canStart || loading}
+          />
+          {!canStart ? <Text style={styles.ctaHint}>Enter the opponent name to continue</Text> : null}
+        </View>
       </ScrollView>
 
-      <View style={[styles.stickyFooter, { paddingBottom: insets.bottom + spacing.base }]}>
-        <AppButton
-          label={loading ? "Starting…" : "Start Match"}
-          onPress={handleStart}
-          variant="primary"
-          size="large"
-          icon="sports-soccer"
-          disabled={!canStart || loading}
-        />
-        {!canStart ? <Text style={styles.ctaHint}>Enter the opponent name to continue</Text> : null}
-      </View>
+
     </KeyboardAvoidingView>
   );
 }
@@ -185,6 +188,7 @@ const styles = StyleSheet.create({
   tipCopy: { flex: 1, gap: 4 },
   tipTitle: { ...typography.bodyMed, color: palette.primaryDark },
   tipBody: { ...typography.caption, color: palette.primary, lineHeight: 18 },
-  stickyFooter: { paddingHorizontal: spacing.base, paddingTop: spacing.md, backgroundColor: palette.surface, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: palette.border, gap: spacing.sm },
+  
+  ctaSection: { gap: spacing.sm, paddingTop: spacing.md },
   ctaHint: { ...typography.caption, color: palette.muted, textAlign: "center" },
 });

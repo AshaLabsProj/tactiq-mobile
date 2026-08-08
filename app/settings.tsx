@@ -79,7 +79,7 @@ export default function SettingsScreen() {
     <ScreenContainer edges={["top", "bottom", "left", "right"]}>
       <View style={styles.topBar}>
         <View>
-          <Text style={styles.eyebrow}>TACTIQ</Text>
+          <Text style={styles.eyebrow}>SKILLTRACKER</Text>
           <Text style={styles.title}>Settings</Text>
         </View>
         <IconButton name="close" accessibilityLabel="Close settings" onPress={() => router.back()} />
@@ -180,7 +180,7 @@ export default function SettingsScreen() {
               <MaterialIcons name="insights" size={28} color={palette.white} />
             </View>
             <View style={styles.aboutCopy}>
-              <Text style={styles.aboutTitle}>Tactiq Coach</Text>
+              <Text style={styles.aboutTitle}>Skilltracker</Text>
               <Text style={styles.aboutBody}>Player development and touchline insight, simplified.</Text>
               <Text style={styles.version}>Version 1.0.0</Text>
             </View>

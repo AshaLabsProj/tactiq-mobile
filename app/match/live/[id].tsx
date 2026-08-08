@@ -121,7 +121,7 @@ export default function LiveMatchScreen() {
   }
 
   const availableH = screenHeight - insets.top - insets.bottom - 56 - 72 - 20;
-  const pitchH = showEventSelector ? Math.min(availableH * 0.38, 190) : Math.min(availableH * 0.68, 360);
+  const pitchH = showEventSelector ? Math.min(availableH * 0.42, 220) : Math.min(availableH * 0.78, 440);
   const pitchW = Math.min(screenWidth - spacing.base * 2, pitchH * 0.72);
 
   return (
@@ -219,9 +219,9 @@ const styles = StyleSheet.create({
   undoBtn: { paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radius.md, backgroundColor: "rgba(255,255,255,0.12)" },
   undoBtnText: { ...typography.eyebrow, color: palette.white },
   bottomBar: { flexDirection: "row", paddingHorizontal: spacing.base, paddingTop: spacing.md, gap: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(255,255,255,0.1)" },
-  pauseBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: radius.lg, paddingVertical: spacing.md, minHeight: 52 },
+  pauseBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm, backgroundColor: "#1C3A52", borderRadius: radius.lg, paddingVertical: spacing.md, minHeight: 52 },
   pauseBtnText: { ...typography.bodyMed, color: palette.white },
-  endMatchBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm, backgroundColor: "rgba(248,113,113,0.1)", borderRadius: radius.lg, paddingVertical: spacing.md, borderWidth: 1, borderColor: "rgba(248,113,113,0.3)", minHeight: 52 },
+  endMatchBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm, backgroundColor: "#2D1B1B", borderRadius: radius.lg, paddingVertical: spacing.md, borderWidth: 1, borderColor: "#F87171", minHeight: 52 },
   endMatchBtnText: { ...typography.bodyMed, color: palette.coral },
   pressed: { opacity: 0.72 },
 });
