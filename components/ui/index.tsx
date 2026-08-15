@@ -385,13 +385,14 @@ export function AppCard({
     return <View style={[styles.card, toneStyle, style]}>{children}</View>;
   }
   return (
-    <Pressable
+    <TouchableOpacity
+      activeOpacity={0.82}
       accessibilityRole="button"
       onPress={onPress}
-      style={({ pressed }) => [styles.card, toneStyle, style, pressed && styles.pressed]}
+      style={[styles.card, toneStyle, style]}
     >
       {children}
-    </Pressable>
+    </TouchableOpacity>
   );
 }
 
@@ -484,14 +485,15 @@ export function IconButton({
     styles.iconBtnDefault;
   const iconColor = variant === "primary" ? palette.white : color;
   return (
-    <Pressable
+    <TouchableOpacity
+      activeOpacity={0.72}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       onPress={onPress}
-      style={({ pressed }) => [styles.iconBtn, variantStyle, pressed && styles.pressed]}
+      style={[styles.iconBtn, variantStyle]}
     >
       <MaterialIcons name={name} size={22} color={iconColor} />
-    </Pressable>
+    </TouchableOpacity>
   );
 }
 

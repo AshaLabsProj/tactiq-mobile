@@ -32,9 +32,18 @@ export default function TabLayout() {
       <Tabs.Screen
         name="team"
         options={{
-          title: "Players",
+          title: "Squad",
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons name="people" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="capture"
+        options={{
+          title: "Capture",
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="add-circle-outline" size={size} color={color} />
           ),
         }}
       />
@@ -48,7 +57,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen name="squad" options={{ href: null }} />
-      <Tabs.Screen name="capture" options={{ href: null }} />
     </Tabs>
   );
 }

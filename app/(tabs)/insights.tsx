@@ -12,6 +12,7 @@ import { SkillRadar } from "@/components/charts/SkillRadar";
 import { AssessmentFreshness, EmptyState, FocusCard, InsightCard, PlayerAvatar, SectionHeader, SkillBar, StrengthCard } from "@/components/ui";
 import { useWorkspace } from "@/contexts/workspace-context";
 import { latestAssessmentForPlayer, matchInsights, matchMetrics, strongestAndFocus, teamSkillAverages } from "@/lib/insights";
+import { latestPracticeSessionForTeam, teamTransferSignal } from "@/lib/transfer";
 import { palette, radius, ratingLabel, spacing, typography } from "@/lib/palette";
 import type { SkillKey } from "@/types/models";
 import { SKILL_LABELS } from "@/types/models";
@@ -46,6 +47,9 @@ export default function InsightsScreen() {
   const latestMatchEvents = latestMatch ? data.matchEvents.filter((e) => e.matchId === latestMatch.id) : [];
   const latestMatchInsights = matchInsights(latestMatchEvents);
   const latestMetrics = matchMetrics(latestMatchEvents);
+  const latestPractice = team ? latestPracticeSessionForTeam(data.practiceSessions, team.id) : undefined;
+  const teamTransfer = team ? teamTransferSignal(team.id, teamFocus, data.practiceSessions, data.assessments, data.matchEvents) : undefined;
+  const activeTeamGoal = team ? data.focusGoals.find((goal) => goal.teamId === team.id && goal.status === "active") : undefined;
   const radarRatings = useMemo(() => {
     const r: Record<string, number> = {};
     for (const key of Object.keys(SKILL_LABELS) as SkillKey[]) r[key] = Math.max(1, Math.min(3, Math.round(teamAverages[key] || 1)));
@@ -81,6 +85,25 @@ export default function InsightsScreen() {
         </InsightCard>
 
         <StrengthCard skill={SKILL_LABELS[teamStrength]} observation={`Team average: ${teamAverages[teamStrength]?.toFixed(1) ?? "—"} — highest-rated skill.`} />
+
+        {teamTransfer ? (
+          <View style={styles.transferSection}>
+            <SectionHeader title="Practice to Pitch" />
+            <View style={styles.transferCard}>
+              <View style={styles.transferHeading}>
+                <View style={styles.transferIcon}><MaterialIcons name="compare-arrows" size={20} color={palette.primaryDark} /></View>
+                <View style={styles.transferCopy}><Text style={styles.transferSkill}>{SKILL_LABELS[teamTransfer.skill]}</Text><Text style={styles.transferStatus}>{teamTransfer.state === "insufficient" ? "More evidence needed" : teamTransfer.state === "positive" ? "Transfer is showing" : teamTransfer.state === "watch" ? "Reinforce in training" : "Evidence emerging"}</Text></View>
+                <View style={styles.transferCount}><Text style={styles.transferCountValue}>{teamTransfer.positiveEvents}</Text><Text style={styles.transferCountLabel}>signals</Text></View>
+              </View>
+              <Text style={styles.transferBody}>{teamTransfer.summary}</Text>
+              {latestPractice ? <Text style={styles.transferFootnote}>Last practice: {new Date(latestPractice.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })} · {latestPractice.focusSkills.map((skill) => SKILL_LABELS[skill]).join(" + ")}</Text> : null}
+            </View>
+          </View>
+        ) : null}
+
+        {activeTeamGoal ? (
+          <View style={styles.goalBanner}><MaterialIcons name="outlined-flag" size={18} color="#9A5D00" /><View style={styles.goalBannerCopy}><Text style={styles.goalBannerTitle}>Active team focus · {SKILL_LABELS[activeTeamGoal.skill]}</Text><Text style={styles.goalBannerText}>{activeTeamGoal.note}</Text></View></View>
+        ) : null}
 
         <View style={styles.radarSection}>
           <SectionHeader title="Team Development Shape" />
@@ -156,6 +179,22 @@ const styles = StyleSheet.create({
   insightMeta: { flexDirection: "row", alignItems: "baseline", gap: spacing.sm, marginTop: spacing.sm },
   insightScore: { ...typography.displayMd, color: palette.ink, fontVariant: ["tabular-nums"] as any },
   insightScoreLabel: { ...typography.caption, color: palette.muted },
+  transferSection: { gap: spacing.sm },
+  transferCard: { backgroundColor: palette.primarySoft, borderRadius: radius.xl, padding: spacing.base, gap: spacing.sm, borderWidth: 1, borderColor: "#A7E7D3" },
+  transferHeading: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  transferIcon: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.7)" },
+  transferCopy: { flex: 1 },
+  transferSkill: { ...typography.bodyMed, color: palette.primaryDark },
+  transferStatus: { ...typography.caption, color: palette.primaryDark, marginTop: 2 },
+  transferCount: { alignItems: "center" },
+  transferCountValue: { color: palette.primaryDark, fontSize: 19, fontWeight: "900", fontVariant: ["tabular-nums"] as any },
+  transferCountLabel: { color: palette.primaryDark, fontSize: 9, fontWeight: "800", textTransform: "uppercase" },
+  transferBody: { ...typography.caption, color: palette.primaryDark, lineHeight: 18 },
+  transferFootnote: { color: palette.primaryDark, fontSize: 11, lineHeight: 16, fontWeight: "700", opacity: 0.8 },
+  goalBanner: { flexDirection: "row", alignItems: "flex-start", gap: spacing.sm, padding: spacing.md, borderRadius: radius.lg, backgroundColor: palette.amberSoft, borderWidth: 1, borderColor: "#F7D68E" },
+  goalBannerCopy: { flex: 1 },
+  goalBannerTitle: { ...typography.bodyMed, color: palette.amberDark },
+  goalBannerText: { ...typography.caption, color: palette.amberDark, marginTop: 2, lineHeight: 17 },
   radarSection: { gap: spacing.sm },
   radarCaption: { ...typography.caption, color: palette.muted },
   radarContainer: { alignItems: "center" },

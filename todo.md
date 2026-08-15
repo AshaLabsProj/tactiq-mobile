@@ -20,3 +20,15 @@
 - [x] Run TypeScript, lint, and unit-test validation
 - [x] Review all buttons, navigation paths, empty states, and safe-area behavior
 - [x] Save the completed project checkpoint and provide App Store and Google Play release guidance
+- [ ] Audit the current Expo client and tRPC/Drizzle server scaffold, including database configuration and store-release credentials
+- [x] Define shared v2 types, 24-action taxonomy, settings, practice sessions, focus goals, match timing, and local v1-to-v2 migration
+- [x] Implement durable offline mutation queue, migration tests, reducer tests, and conflict logging
+- [x] Implement 24-action live match capture with pressure, periods, clock persistence, score derivation, optional player attribution, and event editing
+- [ ] Upgrade match summary, CSV/native sharing, tactical metrics, and rule-based coaching insights for the new taxonomy
+- [x] Implement practice sessions, quick sessions, batch squad assessment, focus goals, and voice-note fallback behavior
+- [x] Implement player and team practice-to-pitch transfer analytics with data-sufficiency states
+- [x] Activate protected server CRUD, database schema, account flows, account deletion, first-login migration, and offline-first sync
+- [x] Extend the existing soccerskilltracker.com service and production database as the unified mobile cloud-sync backend
+- [x] Rebrand all user-facing mobile and release surfaces from Tactiq Mobile to Skilltracker and restore Home/Squad/Capture/Insights navigation
+- [x] Complete responsive/accessibility visual QA, unit tests, and airplane-mode workflow validation
+- [ ] Prepare store assets, privacy disclosures, release documentation, EAS profiles, and internal TestFlight/Play testing builds

@@ -258,7 +258,7 @@ export function PitchMap({
 const OUTCOME_COLORS: Record<MatchOutcome, string> = {
   progression: "#4ADE80",
   chance:      "#FBBF24",
-  retention:   "#60A5FA",
+  retention:   "#6EC4A0",
   turnover:    "#F87171",
 };
 
@@ -281,6 +281,7 @@ export function PitchHeatmap({
   const counts: Record<string, number> = {};
   let maxCount = 0;
   filtered.forEach((e) => {
+    if (!e.third || !e.channel) return;
     const key = `${e.third}-${e.channel}`;
     counts[key] = (counts[key] ?? 0) + 1;
     if (counts[key] > maxCount) maxCount = counts[key];

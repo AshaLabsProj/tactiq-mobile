@@ -3,7 +3,9 @@ const bundleId = "com.ashalabs.tactiqcoach";
 const deepLinkScheme = "tactiqcoach";
 
 module.exports = {
-  name: "Tactiq Coach",
+  // Keep the existing identifiers for the already-created App Store / Play listing.
+  // The public app name is now Skilltracker everywhere a coach sees it.
+  name: "Skilltracker",
   slug: "tactiq",
   version: "1.0.0",
   orientation: "portrait",

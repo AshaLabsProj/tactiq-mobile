@@ -1,161 +1,178 @@
 /**
- * EventSelector — 4 large outcome buttons for 2-tap match capture
+ * EventSelector — the second tap in live match capture.
  *
- * Appears after the coach taps a pitch zone.
- * Each button is 88px tall minimum (Touchline Mode standard).
- * Haptic feedback on selection.
+ * The 12 core actions remain visible by default. Detailed tagging is optional
+ * and reveals the 12 extended actions without interrupting the zone → action
+ * primary capture flow.
  */
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ACTION_DEFINITIONS, type ActionType, type EventValence, type MatchCategory } from "@/types/models";
 import { palette, radius, spacing, typography } from "@/lib/palette";
-import type { MatchOutcome } from "@/types/models";
 
-interface OutcomeConfig {
-  outcome: MatchOutcome;
-  label: string;
-  icon: string;
-  color: string;
-  bg: string;
+type IconName = keyof typeof MaterialIcons.glyphMap;
+
+interface ActionPresentation {
+  icon: IconName;
+  background: string;
   border: string;
+  text: string;
 }
 
-const OUTCOMES: OutcomeConfig[] = [
-  {
-    outcome: "progression",
-    label: "Progression",
-    icon: "arrow-upward",
-    color: "#166534",
-    bg: "#DCFCE7",
-    border: "#86EFAC",
-  },
-  {
-    outcome: "chance",
-    label: "Chance",
-    icon: "bolt",
-    color: "#92400E",
-    bg: "#FEF3C7",
-    border: "#FCD34D",
-  },
-  {
-    outcome: "retention",
-    label: "Retention",
-    icon: "radio-button-checked",
-    color: "#1E40AF",
-    bg: "#DBEAFE",
-    border: "#93C5FD",
-  },
-  {
-    outcome: "turnover",
-    label: "Turnover",
-    icon: "close",
-    color: "#991B1B",
-    bg: "#FEE2E2",
-    border: "#FCA5A5",
-  },
-];
+const CATEGORY_STYLE: Record<MatchCategory, Omit<ActionPresentation, "icon">> = {
+  attacking: { background: "#E8F7F3", border: "#A7E7D3", text: "#0F6B50" },
+  possession: { background: "#EEF8F2", border: "#B8E4CD", text: "#166A4D" },
+  defending: { background: "#F2F7ED", border: "#CFE1C2", text: "#3F6C35" },
+  goalkeeping: { background: "#F5F8F1", border: "#D7E5CF", text: "#3B6636" },
+  "set-piece": { background: "#FFF7E6", border: "#F7D68E", text: "#9A5D00" },
+  discipline: { background: "#FFF0EF", border: "#F8B8B1", text: "#A13E37" },
+  "team-admin": { background: "#F3F4F2", border: "#D6D9D4", text: "#4B5563" },
+};
+
+const ICONS: Record<ActionType, IconName> = {
+  goalFor: "sports-soccer",
+  goalAgainst: "remove-circle-outline",
+  shotOnTarget: "gps-fixed",
+  shotOffTarget: "gps-not-fixed",
+  chanceCreated: "bolt",
+  progression: "north-east",
+  retention: "check-circle-outline",
+  turnover: "close",
+  regain: "restart-alt",
+  clearance: "block",
+  save: "front-hand",
+  setPieceWon: "outlined-flag",
+  assist: "handshake",
+  keyPass: "shortcut",
+  cross: "call-split",
+  dribbleWon: "directions-run",
+  tackleWon: "shield",
+  interception: "remove-red-eye",
+  aerialWon: "arrow-upward",
+  foulWon: "emoji-events",
+  foulCommitted: "warning-amber",
+  offside: "flag",
+  card: "style",
+  substitution: "swap-horiz",
+};
+
+function presentation(actionType: ActionType, category: MatchCategory, valence: EventValence): ActionPresentation {
+  if (actionType === "goalFor") {
+    return { icon: ICONS[actionType], background: "#168A68", border: "#168A68", text: "#FFFFFF" };
+  }
+  if (valence === "negative") {
+    return { icon: ICONS[actionType], background: "#FFF0EF", border: "#F8B8B1", text: "#A13E37" };
+  }
+  return { icon: ICONS[actionType], ...CATEGORY_STYLE[category] };
+}
 
 interface EventSelectorProps {
-  onSelect: (outcome: MatchOutcome) => void;
+  onSelect: (actionType: ActionType) => void;
   onCancel?: () => void;
   zoneName?: string;
+  detailedEnabled?: boolean;
+  onDetailedEnabledChange?: (enabled: boolean) => void;
 }
 
-export function EventSelector({ onSelect, onCancel, zoneName }: EventSelectorProps) {
+export function EventSelector({
+  onSelect,
+  onCancel,
+  zoneName,
+  detailedEnabled = false,
+  onDetailedEnabledChange,
+}: EventSelectorProps) {
+  const visibleActions = ACTION_DEFINITIONS.filter(
+    (action) => action.tier === "core" || detailedEnabled,
+  );
+
   return (
     <View style={styles.container}>
-      {zoneName ? (
-        <Text style={styles.zoneLabel}>{zoneName}</Text>
-      ) : null}
-      <Text style={styles.prompt}>What happened?</Text>
-      <View style={styles.grid}>
-        {OUTCOMES.map((cfg) => (
-          <Pressable
-            key={cfg.outcome}
-            accessibilityRole="button"
-            accessibilityLabel={cfg.label}
-            onPress={() => onSelect(cfg.outcome)}
-            style={({ pressed }) => [
-              styles.outcomeBtn,
-              { backgroundColor: cfg.bg, borderColor: cfg.border },
-              pressed && styles.pressed,
-            ]}
+      <View style={styles.headingRow}>
+        <View>
+          {zoneName ? <Text style={styles.zoneLabel}>{zoneName}</Text> : null}
+          <Text style={styles.prompt}>What happened?</Text>
+        </View>
+        {onDetailedEnabledChange ? (
+          <TouchableOpacity
+            accessibilityRole="switch"
+            accessibilityLabel="Detailed tagging"
+            accessibilityState={{ checked: detailedEnabled }}
+            activeOpacity={0.8}
+            onPress={() => onDetailedEnabledChange(!detailedEnabled)}
+            style={[styles.detailToggle, detailedEnabled && styles.detailToggleActive]}
           >
-            <View style={[styles.iconCircle, { backgroundColor: cfg.border }]}>
-              <MaterialIcons name={cfg.icon as any} size={22} color={cfg.color} />
-            </View>
-            <Text style={[styles.outcomeLabel, { color: cfg.color }]}>{cfg.label}</Text>
-          </Pressable>
-        ))}
+            <MaterialIcons name="tune" size={16} color={detailedEnabled ? "#FFFFFF" : palette.primaryDark} />
+            <Text style={[styles.detailToggleText, detailedEnabled && styles.detailToggleTextActive]}>Detailed</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
+
+      <View style={styles.grid}>
+        {visibleActions.map((action) => {
+          const visual = presentation(action.key, action.category, action.valence);
+          return (
+            <TouchableOpacity
+              key={action.key}
+              accessibilityRole="button"
+              accessibilityLabel={action.label}
+              activeOpacity={0.78}
+              onPress={() => onSelect(action.key)}
+              style={[styles.actionButton, { backgroundColor: visual.background, borderColor: visual.border }]}
+            >
+              <MaterialIcons name={visual.icon} size={20} color={visual.text} />
+              <Text numberOfLines={2} style={[styles.actionLabel, { color: visual.text }]}>{action.shortLabel}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
       {onCancel ? (
-        <Pressable
+        <TouchableOpacity
           accessibilityRole="button"
-          accessibilityLabel="Cancel"
+          accessibilityLabel="Cancel action selection"
+          activeOpacity={0.75}
           onPress={onCancel}
-          style={({ pressed }) => [styles.cancelBtn, pressed && styles.pressed]}
+          style={styles.cancelButton}
         >
           <Text style={styles.cancelLabel}>Cancel</Text>
-        </Pressable>
+        </TouchableOpacity>
       ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    gap: spacing.md,
-    paddingHorizontal: spacing.base,
-    paddingBottom: spacing.base,
-  },
-  zoneLabel: {
-    ...typography.eyebrow,
-    color: palette.primary,
-    textAlign: "center",
-  },
-  prompt: {
-    ...typography.sectionHead,
-    color: palette.ink,
-    textAlign: "center",
-  },
-  grid: {
+  container: { gap: spacing.sm, paddingHorizontal: spacing.base, paddingBottom: spacing.base },
+  headingRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: spacing.sm },
+  zoneLabel: { ...typography.eyebrow, color: palette.primaryDark, marginBottom: 2 },
+  prompt: { ...typography.sectionHead, color: palette.white },
+  detailToggle: {
+    minHeight: 40,
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: "#63D6AE",
+    backgroundColor: "#E8F7F3",
   },
-  outcomeBtn: {
-    flex: 1,
-    minWidth: "45%",
-    minHeight: 88,
-    borderRadius: radius.xl,
-    borderWidth: 1.5,
+  detailToggleActive: { backgroundColor: "#168A68", borderColor: "#168A68" },
+  detailToggleText: { fontSize: 12, fontWeight: "800", color: palette.primaryDark },
+  detailToggleTextActive: { color: "#FFFFFF" },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  actionButton: {
+    width: "31.8%",
+    minHeight: 64,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 8,
     alignItems: "center",
     justifyContent: "center",
-    gap: spacing.sm,
-    paddingVertical: spacing.base,
+    gap: 4,
   },
-  iconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  outcomeLabel: {
-    fontSize: 15,
-    fontWeight: "700",
-    lineHeight: 20,
-  },
-  cancelBtn: {
-    alignItems: "center",
-    paddingVertical: spacing.md,
-    minHeight: 44,
-  },
-  cancelLabel: {
-    ...typography.bodyMed,
-    color: palette.muted,
-  },
-  pressed: {
-    transform: [{ scale: 0.97 }],
-    opacity: 0.88,
-  },
+  actionLabel: { fontSize: 11, lineHeight: 13, fontWeight: "800", textAlign: "center" },
+  cancelButton: { minHeight: 44, alignItems: "center", justifyContent: "center" },
+  cancelLabel: { ...typography.bodyMed, color: "rgba(255,255,255,0.72)" },
 });

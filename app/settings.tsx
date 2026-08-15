@@ -14,7 +14,7 @@ import { getSessionToken, getUserInfo, removeSessionToken, clearUserInfo } from 
 type UserInfo = { name?: string; email?: string } | null;
 
 export default function SettingsScreen() {
-  const { data, updateSettings, resetWorkspace } = useWorkspace();
+  const { data, updateSettings, resetWorkspace, pendingSyncCount, syncConflicts, isCloudSyncing, lastCloudSyncAt, cloudSyncError, syncNow, migrateLocalWorkspaceToCloud, eraseCloudBackup } = useWorkspace();
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [userInfo, setUserInfo] = useState<UserInfo>(null);
 
@@ -53,6 +53,24 @@ export default function SettingsScreen() {
           },
         },
       ],
+    );
+  };
+
+  const handleSync = async () => {
+    const success = await syncNow();
+    if (success) haptic.success(data.settings.hapticsEnabled);
+  };
+
+  const handleBackup = async () => {
+    const success = await migrateLocalWorkspaceToCloud();
+    if (success) haptic.success(data.settings.hapticsEnabled);
+  };
+
+  const confirmEraseCloud = () => {
+    Alert.alert(
+      "Erase cloud backup?",
+      "This permanently removes Skilltracker data stored in the cloud for this account. Data still stored on this phone will remain until you reset it separately.",
+      [{ text: "Cancel", style: "cancel" }, { text: "Erase cloud backup", style: "destructive", onPress: () => { void eraseCloudBackup(); } }],
     );
   };
 
@@ -169,6 +187,24 @@ export default function SettingsScreen() {
               </Text>
             </View>
           </AppCard>
+          {sessionToken ? (
+            <AppCard style={styles.cloudCard}>
+              <View style={styles.cloudHeader}>
+                <View style={styles.cloudIcon}>
+                  <MaterialIcons name="cloud-done" size={23} color={palette.primaryDark} />
+                </View>
+                <View style={styles.cloudCopy}>
+                  <Text style={styles.infoTitle}>Cloud backup</Text>
+                  <Text style={styles.infoBody}>{lastCloudSyncAt ? `Last synced ${new Date(lastCloudSyncAt).toLocaleString()}` : "Back up this device before using another phone."}</Text>
+                </View>
+              </View>
+              {pendingSyncCount ? <View style={styles.pendingRow}><MaterialIcons name="sync" size={16} color={palette.amberDark} /><Text style={styles.pendingText}>{pendingSyncCount} local change{pendingSyncCount === 1 ? "" : "s"} ready to sync</Text></View> : null}
+              {syncConflicts.length ? <Text style={styles.conflictText}>{syncConflicts.length} sync conflict{syncConflicts.length === 1 ? "" : "s"} saved safely for review.</Text> : null}
+              {cloudSyncError ? <Text style={styles.errorText}>{cloudSyncError}</Text> : null}
+              <AppButton label={isCloudSyncing ? "Syncing…" : lastCloudSyncAt ? "Sync now" : "Back up this device"} icon={lastCloudSyncAt ? "sync" : "cloud-upload"} onPress={lastCloudSyncAt ? handleSync : handleBackup} disabled={isCloudSyncing} />
+              <AppButton label="Erase cloud backup" variant="destructive" icon="delete-outline" onPress={confirmEraseCloud} disabled={isCloudSyncing} />
+            </AppCard>
+          ) : null}
           <AppButton label="Reset demonstration data" variant="destructive" icon="restart-alt" onPress={confirmReset} />
         </View>
 
@@ -225,6 +261,14 @@ const styles = StyleSheet.create({
   infoCopy: { flex: 1 },
   infoTitle: { color: palette.ink, fontSize: 15, lineHeight: 20, fontWeight: "700" },
   infoBody: { color: palette.muted, fontSize: 13, lineHeight: 19, marginTop: 3 },
+  cloudCard: { gap: 12 },
+  cloudHeader: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
+  cloudIcon: { width: 44, height: 44, borderRadius: 15, backgroundColor: palette.primarySoft, alignItems: "center", justifyContent: "center" },
+  cloudCopy: { flex: 1 },
+  pendingRow: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10, backgroundColor: palette.amberSoft },
+  pendingText: { color: palette.amberDark, fontSize: 12, fontWeight: "700" },
+  conflictText: { color: palette.coral, fontSize: 12, lineHeight: 17, fontWeight: "700" },
+  errorText: { color: palette.coral, fontSize: 12, lineHeight: 17, fontWeight: "700" },
   // About
   aboutCard: { flexDirection: "row", alignItems: "center", gap: 14 },
   brandMark: { width: 58, height: 58, borderRadius: 18, backgroundColor: palette.primary, alignItems: "center", justifyContent: "center" },

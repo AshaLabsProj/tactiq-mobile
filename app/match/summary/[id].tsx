@@ -1,332 +1,85 @@
-/**
- * Match Summary — Post-match analysis
- *
- * Shows: score, event counts, outcome breakdown, pitch heatmap,
- * activity by third. Navy theme consistent with match tracking identity.
- */
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PitchHeatmap } from "@/components/charts/PitchMap";
 import { useWorkspace } from "@/contexts/workspace-context";
+import { derivedScore, elapsedMatchSeconds, matchInsights, matchMetrics } from "@/lib/insights";
 import { palette, radius, spacing, typography } from "@/lib/palette";
-import type { MatchOutcome, PitchThird } from "@/types/models";
-
-function haptic() {
-  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-}
+import { ACTION_BY_KEY, THIRD_LABELS, type PitchThird } from "@/types/models";
 
 function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("en", {
-    weekday: "short", month: "short", day: "numeric", year: "numeric",
-  }).format(new Date(value));
+  return new Intl.DateTimeFormat("en", { weekday: "short", month: "short", day: "numeric" }).format(new Date(value));
 }
 
-function formatDuration(startedAt?: string, endedAt?: string): string {
-  if (!startedAt || !endedAt) return "—";
-  const ms = new Date(endedAt).getTime() - new Date(startedAt).getTime();
-  const mins = Math.round(ms / 60000);
-  return `${mins} min`;
+function formatDuration(seconds: number): string {
+  return seconds ? `${Math.floor(seconds / 60)} min tracked` : "No clock data";
 }
-
-const OUTCOME_COLORS: Record<MatchOutcome, string> = {
-  progression: "#4ADE80",
-  chance: "#FBBF24",
-  retention: "#60A5FA",
-  turnover: "#F87171",
-};
-
-const THIRD_LABELS: Record<PitchThird, string> = {
-  defensive: "Build",
-  middle: "Connect",
-  attacking: "Create",
-};
 
 export default function MatchSummaryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const { data } = useWorkspace();
-
-  const match = data.matches.find((m) => m.id === id);
-  const events = data.matchEvents.filter((e) => e.matchId === id);
+  const match = data.matches.find((item) => item.id === id);
+  const events = data.matchEvents.filter((event) => event.matchId === id);
 
   if (!match) {
-    return (
-      <View style={[styles.root, { paddingTop: insets.top }]}>
-        <View style={styles.notFound}>
-          <MaterialIcons name="sports-soccer" size={40} color={palette.muted} />
-          <Text style={styles.notFoundTitle}>Match not found</Text>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => { haptic(); router.replace("/(tabs)" as any); }}
-            style={styles.backHomeBtn}
-          >
-            <Text style={styles.backHomeBtnText}>Back to home</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
+    return <View style={[styles.root, { paddingTop: insets.top }]}><View style={styles.notFound}><MaterialIcons name="sports-soccer" size={40} color="rgba(255,255,255,0.58)" /><Text style={styles.notFoundTitle}>Match not found</Text><TouchableOpacity activeOpacity={0.8} onPress={() => router.replace("/(tabs)" as never)} style={styles.backHomeButton}><Text style={styles.backHomeText}>Back to Home</Text></TouchableOpacity></View></View>;
   }
 
-  const progressions = events.filter((e) => e.outcome === "progression").length;
-  const chances = events.filter((e) => e.outcome === "chance").length;
-  const turnovers = events.filter((e) => e.outcome === "turnover").length;
-  const retentions = events.filter((e) => e.outcome === "retention").length;
-  const total = events.length;
-
-  const byThird = (["defensive", "middle", "attacking"] as PitchThird[]).map((third) => ({
-    third,
-    count: events.filter((e) => e.third === third).length,
-  }));
-  const maxThirdCount = Math.max(...byThird.map((t) => t.count), 1);
-
-  const scoreFor = match.scoreFor ?? 0;
-  const scoreAgainst = match.scoreAgainst ?? 0;
-  const result = scoreFor > scoreAgainst ? "WIN" : scoreFor < scoreAgainst ? "LOSS" : "DRAW";
-  const resultColor = result === "WIN" ? "#4ADE80" : result === "LOSS" ? "#F87171" : "#FBBF24";
+  const metrics = matchMetrics(events);
+  const score = derivedScore(events, match);
+  const duration = elapsedMatchSeconds(match);
+  const result = score.scoreFor > score.scoreAgainst ? "WIN" : score.scoreFor < score.scoreAgainst ? "LOSS" : "DRAW";
+  const resultColor = result === "WIN" ? "#63D6AE" : result === "LOSS" ? "#F87171" : "#FBBF24";
+  const heatmapHeight = Math.min(390, Math.max(300, Math.round((width - spacing.base * 2) * 1.25)));
+  const heatmapWidth = Math.min(310, width - spacing.base * 4);
+  const byThird = (["defensive", "middle", "attacking"] as PitchThird[]).map((third) => ({ third, count: events.filter((event) => event.third === third).length }));
+  const maxThird = Math.max(1, ...byThird.map((entry) => entry.count));
+  const coreMetrics: Array<{ label: string; value: number; icon: keyof typeof MaterialIcons.glyphMap; tone: "emerald" | "amber" | "coral" }> = [
+    { label: "Shots", value: metrics.shots, icon: "gps-fixed" as const, tone: "emerald" },
+    { label: "On target", value: metrics.shotOnTarget, icon: "center-focus-strong" as const, tone: "amber" },
+    { label: "Chances", value: metrics.chancesCreated, icon: "bolt" as const, tone: "emerald" },
+    { label: "Regains", value: metrics.regains, icon: "restart-alt" as const, tone: "emerald" },
+    { label: "Turnovers", value: metrics.actionCounts.turnover, icon: "close" as const, tone: "coral" },
+    { label: "Set pieces", value: metrics.setPiecesWon, icon: "outlined-flag" as const, tone: "amber" },
+  ];
+  const eventSummary = [
+    "goalFor", "goalAgainst", "shotOnTarget", "shotOffTarget", "chanceCreated", "progression", "retention", "turnover", "regain", "clearance", "save", "setPieceWon",
+  ].map((actionType) => ({ actionType: actionType as keyof typeof ACTION_BY_KEY, count: metrics.actionCounts[actionType as keyof typeof metrics.actionCounts] })).filter((entry) => entry.count > 0);
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => { haptic(); router.back(); }}
-          style={styles.backBtn}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <MaterialIcons name="arrow-back" size={22} color="#FFFFFF" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Match Summary</Text>
-        <View style={{ width: 40 }} />
-      </View>
+      <View style={styles.header}><TouchableOpacity activeOpacity={0.7} accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} style={styles.backButton}><MaterialIcons name="arrow-back" size={22} color="#FFFFFF" /></TouchableOpacity><Text style={styles.headerTitle}>Match summary</Text><View style={styles.headerSpacer} /></View>
+      <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 30 }]} showsVerticalScrollIndicator={false}>
+        <View style={styles.scoreCard}><Text style={styles.scoreDate}>{formatDate(match.matchDate)} · vs {match.opponent}</Text><View style={styles.scoreRow}><View style={styles.scoreBlock}><Text style={styles.scoreValue}>{score.scoreFor}</Text><Text style={styles.scoreCaption}>Your team</Text></View><View style={styles.resultBlock}><Text style={[styles.resultLabel, { color: resultColor }]}>{result}</Text><Text style={styles.duration}>{formatDuration(duration)}</Text></View><View style={styles.scoreBlock}><Text style={styles.scoreValue}>{score.scoreAgainst}</Text><Text numberOfLines={1} style={styles.scoreCaption}>{match.opponent}</Text></View></View><Text style={styles.scoreRule}>Score is calculated from recorded goals{match.scoreFor !== undefined ? " (manual correction applied)" : ""}.</Text></View>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Score Card */}
-        <View style={styles.scoreCard}>
-          <Text style={styles.scoreDate}>{formatDate(match.matchDate)}</Text>
-          <View style={styles.scoreRow}>
-            <View style={styles.scoreBlock}>
-              <Text style={styles.scoreValue}>{scoreFor}</Text>
-              <Text style={styles.scoreTeam}>Your team</Text>
-            </View>
-            <View style={styles.scoreDivider}>
-              <Text style={[styles.resultBadge, { color: resultColor }]}>{result}</Text>
-            </View>
-            <View style={styles.scoreBlock}>
-              <Text style={styles.scoreValue}>{scoreAgainst}</Text>
-              <Text style={styles.scoreTeam}>{match.opponent}</Text>
-            </View>
-          </View>
-          <Text style={styles.scoreDuration}>
-            Duration: {formatDuration(match.startedAt, match.endedAt)}
-          </Text>
-        </View>
+        <Section title="At a glance"><View style={styles.metricsGrid}>{coreMetrics.map((metric) => <MetricCard key={metric.label} {...metric} />)}</View></Section>
 
-        {/* Stats Row */}
-        <View style={styles.statsRow}>
-          <View style={styles.statPill}>
-            <Text style={styles.statValue}>{total}</Text>
-            <Text style={styles.statLabel}>Events</Text>
-          </View>
-          <View style={styles.statPill}>
-            <Text style={[styles.statValue, { color: OUTCOME_COLORS.progression }]}>{progressions}</Text>
-            <Text style={styles.statLabel}>Prog</Text>
-          </View>
-          <View style={styles.statPill}>
-            <Text style={[styles.statValue, { color: OUTCOME_COLORS.chance }]}>{chances}</Text>
-            <Text style={styles.statLabel}>Chance</Text>
-          </View>
-          <View style={styles.statPill}>
-            <Text style={[styles.statValue, { color: OUTCOME_COLORS.turnover }]}>{turnovers}</Text>
-            <Text style={styles.statLabel}>Turnover</Text>
-          </View>
-        </View>
+        <Section title="Coach cues"><View style={styles.insightCard}>{matchInsights(events).map((insight, index) => <View key={insight} style={[styles.insightRow, index > 0 && styles.insightDivider]}><View style={styles.insightDot} /><Text style={styles.insightText}>{insight}</Text></View>)}</View></Section>
 
-        {/* Pitch Heatmap */}
-        {events.length > 0 ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Pitch Activity</Text>
-            <View style={styles.heatmapCard}>
-              <PitchHeatmap events={events} width={300} height={420} />
-            </View>
-          </View>
-        ) : null}
+        {events.length ? <Section title="Where play happened"><View style={styles.heatmapCard}><PitchHeatmap events={events} width={heatmapWidth} height={heatmapHeight} /><Text style={styles.heatmapCaption}>Darker zones show more tagged activity.</Text></View></Section> : null}
 
-        {/* Outcomes Breakdown */}
-        {events.length > 0 ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Outcomes</Text>
-            <View style={styles.outcomesCard}>
-              {([
-                { key: "progression" as MatchOutcome, label: "Progressions", value: progressions },
-                { key: "chance" as MatchOutcome, label: "Chances", value: chances },
-                { key: "retention" as MatchOutcome, label: "Retentions", value: retentions },
-                { key: "turnover" as MatchOutcome, label: "Turnovers", value: turnovers },
-              ]).map(({ key, label, value }, idx) => (
-                <View key={key} style={[styles.outcomeRow, idx > 0 && styles.outcomeDivider]}>
-                  <View style={[styles.outcomeDot, { backgroundColor: OUTCOME_COLORS[key] }]} />
-                  <Text style={styles.outcomeLabel}>{label}</Text>
-                  <Text style={[styles.outcomeValue, { color: OUTCOME_COLORS[key] }]}>{value}</Text>
-                  <Text style={styles.outcomePercent}>
-                    {total > 0 ? `${Math.round((value / total) * 100)}%` : "—"}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        ) : null}
+        {events.length ? <Section title="Activity by third"><View style={styles.thirdsCard}>{byThird.map(({ third, count }) => <View key={third} style={styles.thirdRow}><Text style={styles.thirdLabel}>{THIRD_LABELS[third]}</Text><View style={styles.thirdTrack}><View style={[styles.thirdFill, { width: `${Math.round((count / maxThird) * 100)}%` }]} /></View><Text style={styles.thirdValue}>{count}</Text></View>)}</View></Section> : null}
 
-        {/* Activity by Third */}
-        {events.length > 0 ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Activity by Third</Text>
-            <View style={styles.thirdsCard}>
-              {byThird.map(({ third, count }) => (
-                <View key={third} style={styles.thirdRow}>
-                  <Text style={styles.thirdLabel}>{THIRD_LABELS[third]}</Text>
-                  <View style={styles.thirdBarTrack}>
-                    <View
-                      style={[
-                        styles.thirdBarFill,
-                        { width: `${(count / maxThirdCount) * 100}%` as any },
-                      ]}
-                    />
-                  </View>
-                  <Text style={styles.thirdCount}>{count}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        ) : null}
+        <Section title="Event breakdown"><View style={styles.eventCard}>{eventSummary.length ? eventSummary.map(({ actionType, count }, index) => <View key={actionType} style={[styles.eventRow, index > 0 && styles.eventDivider]}><Text style={styles.eventName}>{ACTION_BY_KEY[actionType].label}</Text><Text style={styles.eventCount}>{count}</Text></View>) : <Text style={styles.emptyCopy}>No events recorded. Use the event log next match to add context.</Text>}</View></Section>
 
-        {/* Empty state */}
-        {events.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <MaterialIcons name="sports-soccer" size={32} color={palette.muted} />
-            <Text style={styles.emptyText}>No events were recorded during this match.</Text>
-          </View>
-        ) : null}
-
-        {/* Back to matches */}
-        <TouchableOpacity
-          activeOpacity={0.8}
-          accessibilityRole="button"
-          onPress={() => { haptic(); router.push("/match" as any); }}
-          style={styles.matchesBtn}
-        >
-          <MaterialIcons name="list" size={20} color="#FFFFFF" />
-          <Text style={styles.matchesBtnText}>All Matches</Text>
-        </TouchableOpacity>
+        <TouchableOpacity activeOpacity={0.8} accessibilityRole="button" onPress={() => router.replace("/match" as never)} style={styles.matchesButton}><MaterialIcons name="format-list-bulleted" size={20} color="#FFFFFF" /><Text style={styles.matchesButtonText}>All matches</Text></TouchableOpacity>
       </ScrollView>
     </View>
   );
 }
 
+function Section({ title, children }: { title: string; children: React.ReactNode }) { return <View style={styles.section}><Text style={styles.sectionTitle}>{title}</Text>{children}</View>; }
+function MetricCard({ label, value, icon, tone }: { label: string; value: number; icon: keyof typeof MaterialIcons.glyphMap; tone: "emerald" | "amber" | "coral" }) { const colors = tone === "emerald" ? { bg: "rgba(99,214,174,0.12)", fg: "#63D6AE" } : tone === "amber" ? { bg: "rgba(251,191,36,0.13)", fg: "#FBBF24" } : { bg: "rgba(248,113,113,0.13)", fg: "#F87171" }; return <View style={styles.metricCard}><View style={[styles.metricIcon, { backgroundColor: colors.bg }]}><MaterialIcons name={icon} size={18} color={colors.fg} /></View><Text style={styles.metricValue}>{value}</Text><Text style={styles.metricLabel}>{label}</Text></View>; }
+
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: palette.navy },
-  notFound: { flex: 1, alignItems: "center", justifyContent: "center", gap: 14, padding: 24 },
-  notFoundTitle: { ...typography.cardTitle, color: "#FFFFFF" },
-  backHomeBtn: { backgroundColor: palette.navyMid, borderRadius: radius.lg, paddingHorizontal: 20, paddingVertical: 12 },
-  backHomeBtnText: { color: "#FFFFFF", fontWeight: "700" as const, fontSize: 15 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: spacing.base,
-    paddingVertical: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(255,255,255,0.1)",
-  },
-  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  headerTitle: { flex: 1, textAlign: "center", ...typography.cardTitle, color: "#FFFFFF" },
-  scroll: { flex: 1 },
-  content: { padding: spacing.base, gap: spacing.base },
-  scoreCard: {
-    backgroundColor: palette.navyMid,
-    borderRadius: radius.xl,
-    padding: spacing.base,
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  scoreDate: { ...typography.caption, color: "rgba(255,255,255,0.7)" },
-  scoreRow: { flexDirection: "row", alignItems: "center", gap: spacing.xl },
-  scoreBlock: { alignItems: "center" },
-  scoreValue: { fontSize: 40, fontWeight: "900" as const, color: "#FFFFFF", lineHeight: 48 },
-  scoreTeam: { ...typography.caption, color: "rgba(255,255,255,0.7)", marginTop: 4 },
-  scoreDivider: { alignItems: "center" },
-  resultBadge: { fontSize: 14, fontWeight: "800" as const, letterSpacing: 1 },
-  scoreDuration: { ...typography.caption, color: "rgba(255,255,255,0.5)" },
-  statsRow: { flexDirection: "row", gap: spacing.sm },
-  statPill: {
-    flex: 1,
-    backgroundColor: palette.navyMid,
-    borderRadius: radius.lg,
-    paddingVertical: spacing.md,
-    alignItems: "center",
-    gap: 4,
-  },
-  statValue: { fontSize: 22, fontWeight: "900" as const, color: "#FFFFFF", fontVariant: ["tabular-nums"] as any },
-  statLabel: { fontSize: 11, fontWeight: "600" as const, color: "rgba(255,255,255,0.6)", textTransform: "uppercase" as const, letterSpacing: 0.5 },
-  section: { gap: spacing.sm },
-  sectionTitle: { ...typography.sectionHead, color: "#FFFFFF" },
-  heatmapCard: {
-    backgroundColor: palette.navyMid,
-    borderRadius: radius.xl,
-    padding: spacing.md,
-    alignItems: "center",
-  },
-  outcomesCard: {
-    backgroundColor: palette.navyMid,
-    borderRadius: radius.xl,
-    padding: spacing.base,
-  },
-  outcomeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 10,
-    gap: 12,
-  },
-  outcomeDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(255,255,255,0.1)" },
-  outcomeDot: { width: 10, height: 10, borderRadius: 5 },
-  outcomeLabel: { flex: 1, color: "#FFFFFF", fontSize: 14, fontWeight: "600" as const },
-  outcomeValue: { fontSize: 18, fontWeight: "800" as const, fontVariant: ["tabular-nums"] as any },
-  outcomePercent: { width: 40, textAlign: "right", color: "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: "600" as const },
-  thirdsCard: {
-    backgroundColor: palette.navyMid,
-    borderRadius: radius.xl,
-    padding: spacing.base,
-    gap: spacing.md,
-  },
-  thirdRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  thirdLabel: { width: 72, color: "#FFFFFF", fontSize: 13, fontWeight: "600" as const },
-  thirdBarTrack: { flex: 1, height: 10, borderRadius: 5, backgroundColor: "rgba(255,255,255,0.1)", overflow: "hidden" as const },
-  thirdBarFill: { height: "100%" as const, borderRadius: 5, backgroundColor: "#4ADE80" },
-  thirdCount: { width: 28, textAlign: "right" as const, color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: "700" as const, fontVariant: ["tabular-nums"] as any },
-  emptyCard: {
-    backgroundColor: palette.navyMid,
-    borderRadius: radius.xl,
-    padding: spacing.xl,
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  emptyText: { ...typography.body, color: "rgba(255,255,255,0.6)", textAlign: "center" as const },
-  matchesBtn: {
-    backgroundColor: palette.navyMid,
-    borderRadius: radius.lg,
-    paddingVertical: spacing.md,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
-  },
-  matchesBtnText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" as const },
+  root: { flex: 1, backgroundColor: palette.navy }, notFound: { flex: 1, alignItems: "center", justifyContent: "center", gap: 14, padding: 24 }, notFoundTitle: { ...typography.cardTitle, color: "#FFFFFF" }, backHomeButton: { minHeight: 48, paddingHorizontal: 18, alignItems: "center", justifyContent: "center", borderRadius: radius.lg, backgroundColor: "#168A68" }, backHomeText: { color: "#FFFFFF", fontSize: 15, fontWeight: "800" },
+  header: { minHeight: 56, paddingHorizontal: spacing.base, flexDirection: "row", alignItems: "center", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(255,255,255,0.12)" }, backButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center" }, headerTitle: { flex: 1, textAlign: "center", color: "#FFFFFF", fontSize: 18, fontWeight: "900" }, headerSpacer: { width: 44 }, scroll: { flex: 1 }, content: { padding: spacing.base, gap: spacing.base },
+  scoreCard: { padding: spacing.base, borderRadius: radius.xl, alignItems: "center", gap: 8, backgroundColor: palette.navyMid }, scoreDate: { color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: "700" }, scoreRow: { width: "100%", flexDirection: "row", alignItems: "center", justifyContent: "space-around" }, scoreBlock: { width: "33%", alignItems: "center" }, scoreValue: { color: "#FFFFFF", fontSize: 44, lineHeight: 52, fontWeight: "900", fontVariant: ["tabular-nums"] as const }, scoreCaption: { color: "rgba(255,255,255,0.65)", fontSize: 12, fontWeight: "700", textAlign: "center" }, resultBlock: { width: "34%", alignItems: "center", gap: 2 }, resultLabel: { fontSize: 14, letterSpacing: 1.2, fontWeight: "900" }, duration: { color: "rgba(255,255,255,0.6)", fontSize: 11, fontWeight: "700" }, scoreRule: { color: "rgba(255,255,255,0.46)", fontSize: 11, textAlign: "center" },
+  section: { gap: 8 }, sectionTitle: { color: "#FFFFFF", fontSize: 20, fontWeight: "900" }, metricsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 }, metricCard: { width: "31.8%", minHeight: 104, padding: 10, borderRadius: radius.lg, backgroundColor: palette.navyMid, justifyContent: "space-between" }, metricIcon: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center" }, metricValue: { color: "#FFFFFF", fontSize: 25, fontWeight: "900", fontVariant: ["tabular-nums"] as const }, metricLabel: { color: "rgba(255,255,255,0.64)", fontSize: 10, lineHeight: 13, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.3 },
+  insightCard: { borderRadius: radius.xl, padding: spacing.base, backgroundColor: "#12364A" }, insightRow: { flexDirection: "row", gap: 10, paddingVertical: 7 }, insightDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(255,255,255,0.12)" }, insightDot: { width: 8, height: 8, marginTop: 6, borderRadius: 4, backgroundColor: "#63D6AE" }, insightText: { flex: 1, color: "#FFFFFF", fontSize: 14, lineHeight: 20, fontWeight: "600" },
+  heatmapCard: { alignItems: "center", padding: spacing.md, borderRadius: radius.xl, backgroundColor: palette.navyMid, gap: 8 }, heatmapCaption: { color: "rgba(255,255,255,0.6)", fontSize: 12, fontWeight: "600" }, thirdsCard: { padding: spacing.base, borderRadius: radius.xl, backgroundColor: palette.navyMid, gap: 12 }, thirdRow: { flexDirection: "row", alignItems: "center", gap: 10 }, thirdLabel: { width: 64, color: "#FFFFFF", fontSize: 13, fontWeight: "700" }, thirdTrack: { flex: 1, height: 10, borderRadius: 5, overflow: "hidden", backgroundColor: "rgba(255,255,255,0.12)" }, thirdFill: { height: "100%", borderRadius: 5, backgroundColor: "#63D6AE" }, thirdValue: { width: 28, color: "rgba(255,255,255,0.75)", textAlign: "right", fontSize: 13, fontWeight: "800", fontVariant: ["tabular-nums"] as const },
+  eventCard: { padding: spacing.base, borderRadius: radius.xl, backgroundColor: palette.navyMid }, eventRow: { minHeight: 42, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, eventDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(255,255,255,0.12)" }, eventName: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" }, eventCount: { color: "#63D6AE", fontSize: 17, fontWeight: "900", fontVariant: ["tabular-nums"] as const }, emptyCopy: { color: "rgba(255,255,255,0.62)", fontSize: 14, lineHeight: 20, textAlign: "center" }, matchesButton: { minHeight: 52, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: radius.lg, backgroundColor: "#168A68" }, matchesButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "900" },
 });

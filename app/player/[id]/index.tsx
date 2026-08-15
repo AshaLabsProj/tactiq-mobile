@@ -11,6 +11,7 @@ import {
   Share,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -36,6 +37,7 @@ import {
   latestAssessmentForPlayer,
   strongestAndFocus,
 } from "@/lib/insights";
+import { playerTransferSignal } from "@/lib/transfer";
 import { palette, radius, spacing, typography } from "@/lib/palette";
 import type { SkillKey } from "@/types/models";
 import { SKILL_LABELS } from "@/types/models";
@@ -74,7 +76,7 @@ const SKILL_CUES: Record<SkillKey, { strong: string; focus: string }> = {
 
 export default function PlayerProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data } = useWorkspace();
+  const { data, saveFocusGoal, updateFocusGoalStatus } = useWorkspace();
   const insets = useSafeAreaInsets();
   const haptic = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
@@ -92,6 +94,8 @@ export default function PlayerProfileScreen() {
     : { strongest: null as SkillKey | null, focus: null as SkillKey | null };
 
   const team = player ? data.teams.find((t) => t.id === player.teamId) : undefined;
+  const activeGoal = player ? data.focusGoals.find((goal) => goal.playerId === player.id && goal.status === "active") : undefined;
+  const transfer = player && focus ? playerTransferSignal(player.id, focus, data.assessments, data.matchEvents) : null;
 
   const handleShare = async () => {
     haptic();
@@ -197,6 +201,40 @@ export default function PlayerProfileScreen() {
               </View>
             ) : null}
 
+            {focus && transfer ? (
+              <View style={styles.transferSection}>
+                <SectionHeader title="Practice to Pitch" />
+                <View style={styles.transferCard}>
+                  <View style={styles.transferTop}>
+                    <View style={styles.transferIcon}><MaterialIcons name="compare-arrows" size={19} color={palette.primaryDark} /></View>
+                    <View style={styles.transferCopy}>
+                      <Text style={styles.transferTitle}>{SKILL_LABELS[focus]}</Text>
+                      <Text style={styles.transferState}>{transfer.state === "insufficient" ? "More match evidence needed" : transfer.state === "positive" ? "Transfer is showing" : transfer.state === "watch" ? "Keep testing in matches" : "Evidence emerging"}</Text>
+                    </View>
+                    <View style={styles.transferCounts}><Text style={styles.transferCount}>{transfer.positiveEvents}</Text><Text style={styles.transferCountLabel}>positive</Text></View>
+                  </View>
+                  <Text style={styles.transferBody}>{transfer.summary}</Text>
+                </View>
+              </View>
+            ) : null}
+
+            {focus ? (
+              <View style={styles.goalSection}>
+                <SectionHeader title="Focus Goal" />
+                {activeGoal ? (
+                  <View style={styles.goalCard}>
+                    <View style={styles.goalIcon}><MaterialIcons name="flag" size={18} color="#9A5D00" /></View>
+                    <View style={styles.goalCopy}><Text style={styles.goalSkill}>{SKILL_LABELS[activeGoal.skill]}</Text><Text style={styles.goalNote}>{activeGoal.note}</Text></View>
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Mark focus goal achieved" activeOpacity={0.8} onPress={() => updateFocusGoalStatus(activeGoal.id, "achieved")} style={styles.goalDoneButton}><MaterialIcons name="check" size={18} color="#0F6B50" /></TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity accessibilityRole="button" activeOpacity={0.8} onPress={() => saveFocusGoal({ playerId: player.id, skill: focus, note: SKILL_CUES[focus].focus, setAt: new Date().toISOString(), status: "active" })} style={styles.setGoalButton}>
+                    <MaterialIcons name="add" size={20} color="#FFFFFF" /><Text style={styles.setGoalText}>Set {SKILL_LABELS[focus]} focus goal</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ) : null}
+
             {/* Trend */}
             <View style={styles.trendSection}>
               <SectionHeader title="Development Trend" />
@@ -296,6 +334,26 @@ const styles = StyleSheet.create({
   radarContainer: { alignItems: "center" },
   sfRow: { flexDirection: "row", gap: spacing.sm },
   sfCard: { flex: 1 },
+  transferSection: { gap: spacing.sm },
+  transferCard: { backgroundColor: palette.primarySoft, borderRadius: radius.xl, padding: spacing.base, gap: spacing.sm, borderWidth: 1, borderColor: "#A7E7D3" },
+  transferTop: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  transferIcon: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.72)" },
+  transferCopy: { flex: 1 },
+  transferTitle: { ...typography.bodyMed, color: palette.primaryDark },
+  transferState: { ...typography.caption, color: palette.primaryDark, marginTop: 2 },
+  transferCounts: { alignItems: "center" },
+  transferCount: { color: palette.primaryDark, fontSize: 18, fontWeight: "900" },
+  transferCountLabel: { color: palette.primaryDark, fontSize: 9, fontWeight: "800", textTransform: "uppercase" },
+  transferBody: { ...typography.caption, color: palette.primaryDark, lineHeight: 18 },
+  goalSection: { gap: spacing.sm },
+  goalCard: { flexDirection: "row", alignItems: "center", gap: spacing.sm, padding: spacing.md, borderRadius: radius.lg, backgroundColor: palette.amberSoft, borderWidth: 1, borderColor: "#F7D68E" },
+  goalIcon: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.7)" },
+  goalCopy: { flex: 1 },
+  goalSkill: { ...typography.bodyMed, color: palette.amberDark },
+  goalNote: { ...typography.caption, color: palette.amberDark, marginTop: 2, lineHeight: 17 },
+  goalDoneButton: { minWidth: 40, minHeight: 40, alignItems: "center", justifyContent: "center", borderRadius: 20, backgroundColor: "#E8F7F3" },
+  setGoalButton: { minHeight: 50, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, borderRadius: radius.lg, backgroundColor: "#168A68" },
+  setGoalText: { color: "#FFFFFF", fontSize: 14, fontWeight: "900" },
   trendSection: { gap: spacing.sm },
   skillsSection: { gap: spacing.md },
   observationSection: { gap: spacing.sm },

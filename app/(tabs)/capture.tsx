@@ -1,142 +1,29 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router } from "expo-router";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-
-import { AppCard, PageHeader, StatusChip, mobileStyles } from "@/components/mobile/ui";
-import { ScreenContainer } from "@/components/screen-container";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useWorkspace } from "@/contexts/workspace-context";
-import { haptic } from "@/lib/haptics";
-import { palette } from "@/lib/palette";
+import { palette, radius, spacing, typography } from "@/lib/palette";
+
+type CaptureAction = "match" | "practice" | "assess" | "player";
 
 export default function CaptureScreen() {
+  const insets = useSafeAreaInsets();
   const { data } = useWorkspace();
-  const hapticsEnabled = data.settings.hapticsEnabled;
   const activeMatch = data.matches.find((match) => match.status === "live" || match.status === "paused");
-
-  const choose = (target: "match" | "assessment") => {
-    haptic.light(hapticsEnabled);
-    if (target === "assessment") {
-      router.push("/assessment-qa");
-      return;
-    }
-    if (activeMatch) {
-      router.push({ pathname: "/match/live/[id]", params: { id: activeMatch.id } });
-      return;
-    }
-    router.push("/match/setup");
+  const go = (action: CaptureAction) => {
+    if (action === "match") { router.push(activeMatch ? { pathname: "/match/live/[id]" as never, params: { id: activeMatch.id } } : "/match/setup" as never); return; }
+    if (action === "practice") { router.push("/practice/new" as never); return; }
+    if (action === "assess") { router.push("/(tabs)/team" as never); return; }
+    router.push("/(tabs)/team" as never);
   };
-
-  return (
-    <ScreenContainer>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={mobileStyles.screenContent}
-      >
-        <PageHeader
-          eyebrow="Keep it simple"
-          title="Capture"
-          subtitle="Choose what you are observing. Everything else stays out of the way."
-        />
-
-        {activeMatch ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => choose("match")}
-            style={({ pressed }) => pressed && styles.pressed}
-          >
-            <AppCard tone="amber" style={styles.resumeCard}>
-              <View style={styles.resumeTop}>
-                <StatusChip label={activeMatch.status === "paused" ? "Paused" : "Live"} tone="amber" />
-                <MaterialIcons name="arrow-forward" size={22} color={palette.ink} />
-              </View>
-              <Text style={styles.resumeTitle}>Resume vs {activeMatch.opponent}</Text>
-              <Text style={styles.resumeBody}>Your recorded events are saved on this device.</Text>
-            </AppCard>
-          </Pressable>
-        ) : null}
-
-        <View style={styles.choiceStack}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => choose("match")}
-            style={({ pressed }) => [styles.choiceCard, styles.matchCard, pressed && styles.choicePressed]}
-          >
-            <View style={styles.choiceTop}>
-              <View style={[styles.choiceIcon, styles.matchIcon]}>
-                <MaterialIcons name="sports-soccer" size={28} color={palette.primaryDark} />
-              </View>
-              <MaterialIcons name="arrow-forward" size={24} color={palette.primaryDark} />
-            </View>
-            <View style={styles.choiceCopy}>
-              <Text style={styles.choiceTitle}>Track a match</Text>
-              <Text style={styles.choiceBody}>
-                Tap a pitch zone, choose the outcome, and keep watching the game.
-              </Text>
-            </View>
-            <View style={styles.stepRow}>
-              <Text style={styles.step}>Zone</Text>
-              <MaterialIcons name="chevron-right" size={18} color={palette.muted} />
-              <Text style={styles.step}>Outcome</Text>
-              <MaterialIcons name="chevron-right" size={18} color={palette.muted} />
-              <Text style={styles.step}>Record</Text>
-            </View>
-          </Pressable>
-
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => choose("assessment")}
-            style={({ pressed }) => [styles.choiceCard, styles.assessmentCard, pressed && styles.choicePressed]}
-          >
-            <View style={styles.choiceTop}>
-              <View style={[styles.choiceIcon, styles.assessmentIcon]}>
-                <MaterialIcons name="fact-check" size={28} color="#8E5A0E" />
-              </View>
-              <MaterialIcons name="arrow-forward" size={24} color="#8E5A0E" />
-            </View>
-            <View style={styles.choiceCopy}>
-              <Text style={styles.choiceTitle}>Assess a player</Text>
-              <Text style={styles.choiceBody}>
-                Answer six quick questions about today's performance — no numbers, just words.
-              </Text>
-            </View>
-            <View style={styles.stepRow}>
-              <Text style={styles.step}>Player</Text>
-              <MaterialIcons name="chevron-right" size={18} color={palette.muted} />
-              <Text style={styles.step}>Skills</Text>
-              <MaterialIcons name="chevron-right" size={18} color={palette.muted} />
-              <Text style={styles.step}>Save</Text>
-            </View>
-          </Pressable>
-        </View>
-      </ScrollView>
-    </ScreenContainer>
-  );
+  const cards: Array<{ action: CaptureAction; title: string; body: string; icon: keyof typeof MaterialIcons.glyphMap; tone: "emerald" | "amber" | "navy" }> = [
+    { action: "match", title: activeMatch ? `Resume vs ${activeMatch.opponent}` : "Start live match", body: activeMatch ? "Return to the pitch and continue recording." : "Zone → action → recorded. Built for the sideline.", icon: "sports-soccer", tone: "navy" },
+    { action: "practice", title: "Log practice", body: "Set one or two focus skills, attendance, then assess the group.", icon: "event-note", tone: "emerald" },
+    { action: "assess", title: "Assess a player", body: "Open a player profile for an individual assessment and goals.", icon: "fact-check", tone: "amber" },
+    { action: "player", title: "Add a player", body: "Keep the squad current before your next session.", icon: "person-add-alt-1", tone: "emerald" },
+  ];
+  return <View style={[styles.root, { paddingTop: insets.top }]}><View style={styles.header}><Text style={styles.eyebrow}>CAPTURE</Text><Text style={styles.title}>What are you doing?</Text><Text style={styles.subtitle}>Choose one clear next action. Everything saves on this device first.</Text></View><ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]} showsVerticalScrollIndicator={false}>{cards.map((card) => <CaptureCard key={card.action} {...card} onPress={() => go(card.action)} />)}</ScrollView></View>;
 }
-
-const styles = StyleSheet.create({
-  resumeCard: { gap: 8 },
-  resumeTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  resumeTitle: { color: palette.ink, fontSize: 19, lineHeight: 25, fontWeight: "700" },
-  resumeBody: { color: palette.muted, fontSize: 14, lineHeight: 20 },
-  choiceStack: { gap: 14 },
-  choiceCard: {
-    minHeight: 245,
-    borderRadius: 24,
-    padding: 20,
-    borderWidth: StyleSheet.hairlineWidth,
-    justifyContent: "space-between",
-  },
-  matchCard: { backgroundColor: palette.primarySoft, borderColor: palette.sage },
-  assessmentCard: { backgroundColor: palette.amberSoft, borderColor: "#EDD5AC" },
-  choiceTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  choiceIcon: { width: 58, height: 58, borderRadius: 19, alignItems: "center", justifyContent: "center" },
-  matchIcon: { backgroundColor: "rgba(255,255,255,0.68)" },
-  assessmentIcon: { backgroundColor: "rgba(255,255,255,0.72)" },
-  choiceCopy: { gap: 7 },
-  choiceTitle: { color: palette.ink, fontSize: 25, lineHeight: 31, fontWeight: "800", letterSpacing: -0.3 },
-  choiceBody: { color: palette.muted, fontSize: 15, lineHeight: 22, maxWidth: 310 },
-  stepRow: { flexDirection: "row", alignItems: "center" },
-  step: { color: palette.muted, fontSize: 12, lineHeight: 16, fontWeight: "700" },
-  choicePressed: { transform: [{ scale: 0.985 }], opacity: 0.86 },
-  pressed: { opacity: 0.65 },
-});
+function CaptureCard({ title, body, icon, tone, onPress }: { title: string; body: string; icon: keyof typeof MaterialIcons.glyphMap; tone: "emerald" | "amber" | "navy"; onPress: () => void }) { const colors = tone === "navy" ? { background: palette.navy, border: palette.navy, icon: "#63D6AE", title: "#FFFFFF", body: "rgba(255,255,255,0.7)" } : tone === "amber" ? { background: "#FFF7E6", border: "#F7D68E", icon: "#9A5D00", title: "#5D3B00", body: "#805B25" } : { background: palette.primarySoft, border: "#A7E7D3", icon: palette.primaryDark, title: palette.primaryDark, body: "#346D5B" }; return <TouchableOpacity accessibilityRole="button" activeOpacity={0.82} onPress={onPress} style={[styles.card, { backgroundColor: colors.background, borderColor: colors.border }]}><View style={styles.cardTop}><View style={[styles.iconCircle, { backgroundColor: tone === "navy" ? "rgba(99,214,174,0.14)" : "rgba(255,255,255,0.7)" }]}><MaterialIcons name={icon} size={24} color={colors.icon} /></View><MaterialIcons name="arrow-forward" size={22} color={colors.icon} /></View><Text style={[styles.cardTitle, { color: colors.title }]}>{title}</Text><Text style={[styles.cardBody, { color: colors.body }]}>{body}</Text></TouchableOpacity>; }
+const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: palette.background }, header: { paddingHorizontal: spacing.base, paddingTop: spacing.lg, gap: 5 }, eyebrow: { color: palette.primaryDark, fontSize: 11, letterSpacing: 1.4, fontWeight: "900" }, title: { color: palette.ink, fontSize: 31, lineHeight: 37, fontWeight: "900", letterSpacing: -0.6 }, subtitle: { color: palette.muted, fontSize: 14, lineHeight: 20, maxWidth: 330 }, content: { padding: spacing.base, gap: spacing.md }, card: { minHeight: 155, justifyContent: "space-between", padding: spacing.base, borderRadius: radius.xl, borderWidth: 1 }, cardTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, iconCircle: { width: 48, height: 48, alignItems: "center", justifyContent: "center", borderRadius: 16 }, cardTitle: { fontSize: 20, lineHeight: 25, fontWeight: "900", marginTop: 16 }, cardBody: { fontSize: 13, lineHeight: 18, fontWeight: "600", marginTop: 4, maxWidth: 300 } });
