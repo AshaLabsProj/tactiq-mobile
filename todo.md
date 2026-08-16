@@ -32,3 +32,5 @@
 - [x] Rebrand all user-facing mobile and release surfaces from Tactiq Mobile to Skilltracker and restore Home/Squad/Capture/Insights navigation
 - [x] Complete responsive/accessibility visual QA, unit tests, and airplane-mode workflow validation
 - [ ] Prepare store assets, privacy disclosures, release documentation, EAS profiles, and internal TestFlight/Play testing builds
+- [x] Refine mobile information hierarchy with distinct purpose-led sections, a dominant next action, grouped content cards, and a clear contextual bottom-navigation state
+- [ ] Build and submit a new TestFlight binary containing the section-separation refinement

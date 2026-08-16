@@ -69,22 +69,25 @@ export default function InsightsScreen() {
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.header}><Text style={styles.eyebrow}>TEAM ANALYTICS</Text><Text style={styles.title}>Insights</Text></View>
       <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 100 }]} showsVerticalScrollIndicator={false}>
-        <View style={styles.activityRow}>
-          <View style={styles.activityStat}><Text style={styles.activityValue}>{assessedThisWeek}</Text><Text style={styles.activityLabel}>This week</Text></View>
-          <View style={styles.activityDivider} />
-          <View style={styles.activityStat}><Text style={styles.activityValue}>{players.length}</Text><Text style={styles.activityLabel}>Players</Text></View>
-          <View style={styles.activityDivider} />
-          <View style={styles.activityStat}><Text style={styles.activityValue}>{data.assessments.length}</Text><Text style={styles.activityLabel}>Assessments</Text></View>
-        </View>
-
-        <InsightCard label="TEAM FOCUS" title={SKILL_LABELS[teamFocus]} explanation={`Lowest team development area. ${SKILL_FOCUS_CUES[teamFocus]}`}>
-          <View style={styles.insightMeta}>
-            <Text style={styles.insightScore}>{teamAverages[teamFocus]?.toFixed(1) ?? "—"}</Text>
-            <Text style={styles.insightScoreLabel}>{ratingLabel(Math.round(teamAverages[teamFocus] || 1) as 1 | 2 | 3)} · Team average</Text>
+        <View style={styles.nowPanel}>
+          <View style={styles.nowHeader}><View><Text style={styles.nowKicker}>RIGHT NOW</Text><Text style={styles.nowTitle}>Your coaching picture</Text></View><MaterialIcons name="insights" size={22} color={palette.primaryDark} /></View>
+          <View style={styles.activityRow}>
+            <View style={styles.activityStat}><Text style={styles.activityValue}>{assessedThisWeek}</Text><Text style={styles.activityLabel}>This week</Text></View>
+            <View style={styles.activityDivider} />
+            <View style={styles.activityStat}><Text style={styles.activityValue}>{players.length}</Text><Text style={styles.activityLabel}>Players</Text></View>
+            <View style={styles.activityDivider} />
+            <View style={styles.activityStat}><Text style={styles.activityValue}>{data.assessments.length}</Text><Text style={styles.activityLabel}>Reviews</Text></View>
           </View>
-        </InsightCard>
-
-        <StrengthCard skill={SKILL_LABELS[teamStrength]} observation={`Team average: ${teamAverages[teamStrength]?.toFixed(1) ?? "—"} — highest-rated skill.`} />
+          <View style={styles.priorityStack}>
+            <InsightCard label="TEAM FOCUS" title={SKILL_LABELS[teamFocus]} explanation={`Lowest team development area. ${SKILL_FOCUS_CUES[teamFocus]}`}>
+              <View style={styles.insightMeta}>
+                <Text style={styles.insightScore}>{teamAverages[teamFocus]?.toFixed(1) ?? "—"}</Text>
+                <Text style={styles.insightScoreLabel}>{ratingLabel(Math.round(teamAverages[teamFocus] || 1) as 1 | 2 | 3)} · Team average</Text>
+              </View>
+            </InsightCard>
+            <StrengthCard skill={SKILL_LABELS[teamStrength]} observation={`Team average: ${teamAverages[teamStrength]?.toFixed(1) ?? "—"} — highest-rated skill.`} />
+          </View>
+        </View>
 
         {teamTransfer ? (
           <View style={styles.transferSection}>
@@ -106,13 +109,13 @@ export default function InsightsScreen() {
         ) : null}
 
         <View style={styles.radarSection}>
-          <SectionHeader title="Team Development Shape" />
+          <View style={styles.sectionLead}><View><Text style={styles.sectionKicker}>DEVELOPMENT SHAPE</Text><Text style={styles.sectionLeadTitle}>How the group is growing</Text></View></View>
           <Text style={styles.radarCaption}>Average across all assessed players</Text>
           <View style={styles.radarContainer}><SkillRadar ratings={radarRatings} size={280} /></View>
         </View>
 
         <View style={styles.skillsSection}>
-          <SectionHeader title="Skill Breakdown" />
+          <SectionHeader title="Skill breakdown" />
           {(Object.keys(SKILL_LABELS) as SkillKey[]).map((key) => {
             const avg = teamAverages[key] ?? 0;
             const rounded = Math.max(1, Math.min(3, Math.round(avg))) as 1 | 2 | 3;
@@ -171,6 +174,11 @@ const styles = StyleSheet.create({
   title: { ...typography.pageTitle, color: palette.ink },
   scroll: { flex: 1 },
   content: { paddingHorizontal: spacing.base, paddingTop: spacing.sm, gap: spacing.lg },
+  nowPanel: { backgroundColor: palette.surfaceAlt, borderRadius: radius.xl, padding: spacing.md, gap: spacing.md, borderWidth: 1, borderColor: palette.border },
+  nowHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  nowKicker: { ...typography.eyebrow, color: palette.primaryDark },
+  nowTitle: { ...typography.sectionHead, color: palette.ink, marginTop: 2 },
+  priorityStack: { gap: spacing.sm },
   activityRow: { flexDirection: "row", backgroundColor: palette.surface, borderRadius: radius.xl, borderWidth: StyleSheet.hairlineWidth, borderColor: palette.border, padding: spacing.base },
   activityStat: { flex: 1, alignItems: "center", gap: 4 },
   activityValue: { ...typography.displayMd, color: palette.ink, fontVariant: ["tabular-nums"] as any },
@@ -196,6 +204,9 @@ const styles = StyleSheet.create({
   goalBannerTitle: { ...typography.bodyMed, color: palette.amberDark },
   goalBannerText: { ...typography.caption, color: palette.amberDark, marginTop: 2, lineHeight: 17 },
   radarSection: { gap: spacing.sm },
+  sectionLead: { paddingTop: 2 },
+  sectionKicker: { ...typography.eyebrow, color: palette.primaryDark },
+  sectionLeadTitle: { ...typography.sectionHead, color: palette.ink, marginTop: 2 },
   radarCaption: { ...typography.caption, color: palette.muted },
   radarContainer: { alignItems: "center" },
   skillsSection: { gap: spacing.md },

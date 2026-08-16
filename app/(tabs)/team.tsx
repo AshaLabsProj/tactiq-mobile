@@ -114,30 +114,30 @@ export default function TeamScreen() {
           </View>
         ) : null}
 
-        {/* Search */}
-        <View style={styles.searchRow}>
-          <MaterialIcons name="search" size={20} color={palette.muted} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search name, number, or position"
-            placeholderTextColor={palette.faint}
-            value={search}
-            onChangeText={setSearch}
-            returnKeyType="search"
-            clearButtonMode="while-editing"
-          />
+        <View style={styles.controlPanel}>
+          <Text style={styles.controlKicker}>FIND A PLAYER</Text>
+          <View style={styles.searchRow}>
+            <MaterialIcons name="search" size={20} color={palette.muted} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search name, number, or position"
+              placeholderTextColor={palette.faint}
+              value={search}
+              onChangeText={setSearch}
+              returnKeyType="search"
+              clearButtonMode="while-editing"
+            />
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+            {POSITION_FILTERS.map((f) => (
+              <Chip key={f} label={f} tone="green" selected={posFilter === f} onPress={() => { haptic(); setPosFilter(f); }} />
+            ))}
+          </ScrollView>
         </View>
 
-        {/* Position filters */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-          {POSITION_FILTERS.map((f) => (
-            <Chip key={f} label={f} tone="green" selected={posFilter === f} onPress={() => { haptic(); setPosFilter(f); }} />
-          ))}
-        </ScrollView>
-
         {/* Sort row */}
-        <View style={styles.sortRow}>
-          <Text style={styles.countText}>{sorted.length} player{sorted.length !== 1 ? "s" : ""}</Text>
+        <View style={styles.listHeader}>
+          <View><Text style={styles.listKicker}>SQUAD</Text><Text style={styles.countText}>{sorted.length} player{sorted.length !== 1 ? "s" : ""} · Tap a row for their development story</Text></View>
           <View style={styles.sortButtons}>
             {([["freshness", "Recent"], ["need", "Priority"], ["name", "Name"]] as [SortMode, string][]).map(([mode, label]) => (
               <Pressable key={mode} accessibilityRole="button" onPress={() => { haptic(); setSortMode(mode); }} style={[styles.sortBtn, sortMode === mode && styles.sortBtnActive]}>
@@ -216,11 +216,14 @@ const styles = StyleSheet.create({
   teamChip: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: palette.primarySoft, borderRadius: radius.lg, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, alignSelf: "flex-start" },
   teamChipText: { ...typography.bodyMed, color: palette.primaryDark },
   teamChipMeta: { ...typography.caption, color: palette.primary },
+  controlPanel: { backgroundColor: palette.surfaceAlt, borderRadius: radius.xl, padding: spacing.md, gap: spacing.sm, borderWidth: 1, borderColor: palette.border },
+  controlKicker: { ...typography.eyebrow, color: palette.primaryDark },
   searchRow: { flexDirection: "row", alignItems: "center", backgroundColor: palette.surface, borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: palette.border, paddingHorizontal: spacing.md, height: 48, gap: spacing.sm },
   searchInput: { flex: 1, ...typography.body, color: palette.ink },
   filterRow: { gap: spacing.sm },
-  sortRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  countText: { ...typography.caption, color: palette.muted },
+  listHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm, marginTop: spacing.sm },
+  listKicker: { ...typography.eyebrow, color: palette.primaryDark, marginBottom: 2 },
+  countText: { ...typography.caption, color: palette.muted, maxWidth: 185, lineHeight: 17 },
   sortButtons: { flexDirection: "row", gap: spacing.xs },
   sortBtn: { paddingHorizontal: spacing.sm, paddingVertical: 5, borderRadius: radius.full, backgroundColor: palette.surfaceAlt },
   sortBtnActive: { backgroundColor: palette.navy },
