@@ -33,4 +33,13 @@
 - [x] Complete responsive/accessibility visual QA, unit tests, and airplane-mode workflow validation
 - [ ] Prepare store assets, privacy disclosures, release documentation, EAS profiles, and internal TestFlight/Play testing builds
 - [x] Refine mobile information hierarchy with distinct purpose-led sections, a dominant next action, grouped content cards, and a clear contextual bottom-navigation state
-- [ ] Build and submit a new TestFlight binary containing the section-separation refinement
+- [x] Build and submit a new TestFlight binary containing the section-separation refinement
+- [ ] Audit subscription SDK readiness, permanent bundle identity, OAuth platform credentials, and server source-of-truth gaps for the Skilltracker Pro release
+- [x] Implement a testable entitlement abstraction, mock provider, local free-tier limit policy, downgrade-safe read-only states, and local paywall metrics
+- [x] Add the Skilltracker Pro paywall, lock surfaces, restore flow, trial/billing lifecycle states, and RevenueCat-backed iOS/Android purchase implementation
+- [x] Resolve the Lifetime SKU request against the release specification’s subscription-only commercial model before creating live store products
+- [x] Rebuild Home as a personalised Today journey with continuation cards, neutral coaching streaks, team/context chips, profile presence, and persistent live-match mini-bar
+- [x] Add bundled editorial coaching cards and improve transfer analytics to per-match trend/baseline logic with contextual match-summary pressure and period analysis
+- [x] Add Sign in with Apple, Android Google sign-in, compliant in-app account deletion, and mobileSync server source-of-truth integration tests
+- [ ] Finalize permanent Skilltracker store identity, dark-mode/responsive/reduce-motion QA, subscription privacy disclosures, reviewer sandbox notes, and store builds
+- [x] Remove the duplicate light-only native appearance setting that overrides automatic dark-mode support

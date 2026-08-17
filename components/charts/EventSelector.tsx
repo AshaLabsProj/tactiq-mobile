@@ -7,6 +7,8 @@
  */
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { router } from "expo-router";
+import { useEntitlement } from "@/contexts/entitlement-context";
 import { ACTION_DEFINITIONS, type ActionType, type EventValence, type MatchCategory } from "@/types/models";
 import { palette, radius, spacing, typography } from "@/lib/palette";
 
@@ -81,6 +83,7 @@ export function EventSelector({
   detailedEnabled = false,
   onDetailedEnabledChange,
 }: EventSelectorProps) {
+  const { isPro, gate } = useEntitlement();
   const visibleActions = ACTION_DEFINITIONS.filter(
     (action) => action.tier === "core" || detailedEnabled,
   );
@@ -98,11 +101,18 @@ export function EventSelector({
             accessibilityLabel="Detailed tagging"
             accessibilityState={{ checked: detailedEnabled }}
             activeOpacity={0.8}
-            onPress={() => onDetailedEnabledChange(!detailedEnabled)}
+            onPress={() => {
+              if (!detailedEnabled && !isPro) {
+                const access = gate("extended-actions", "live_match_detailed_tagging");
+                if (!access.allowed) router.push("/paywall?origin=live-match-detailed-tags" as never);
+                return;
+              }
+              onDetailedEnabledChange(!detailedEnabled);
+            }}
             style={[styles.detailToggle, detailedEnabled && styles.detailToggleActive]}
           >
             <MaterialIcons name="tune" size={16} color={detailedEnabled ? "#FFFFFF" : palette.primaryDark} />
-            <Text style={[styles.detailToggleText, detailedEnabled && styles.detailToggleTextActive]}>Detailed</Text>
+            <Text style={[styles.detailToggleText, detailedEnabled && styles.detailToggleTextActive]}>{detailedEnabled ? "Detailed" : isPro ? "Detailed" : "Pro detail"}</Text>
           </TouchableOpacity>
         ) : null}
       </View>

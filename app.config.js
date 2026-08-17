@@ -6,12 +6,12 @@ module.exports = {
   // Keep the existing identifiers for the already-created App Store / Play listing.
   // The public app name is now Skilltracker everywhere a coach sees it.
   name: "Skilltracker",
+  userInterfaceStyle: "automatic",
   slug: "tactiq",
   version: "1.0.0",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: deepLinkScheme,
-  userInterfaceStyle: "light",
   newArchEnabled: true,
   extra: {
     eas: {
@@ -22,6 +22,7 @@ module.exports = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: bundleId,
+    usesAppleSignIn: true,
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
     },
@@ -57,6 +58,11 @@ module.exports = {
   },
   plugins: [
     "expo-router",
+    "expo-apple-authentication",
+    [
+      "@react-native-google-signin/google-signin",
+      { iosUrlScheme: "com.googleusercontent.apps.469394796444-kpntk6nvjo8u5sk5dko3e9eg7864q23p" },
+    ],
     [
       "expo-splash-screen",
       {

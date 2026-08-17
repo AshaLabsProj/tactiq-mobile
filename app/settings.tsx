@@ -1,15 +1,18 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 
 import { AppButton, AppCard, IconButton } from "@/components/mobile/ui";
+import { NativeSignIn } from "@/components/native-sign-in";
 import { ScreenContainer } from "@/components/screen-container";
 import { useWorkspace } from "@/contexts/workspace-context";
+import { useEntitlement } from "@/contexts/entitlement-context";
 import { haptic } from "@/lib/haptics";
 import { palette } from "@/lib/palette";
 import { startOAuthLogin } from "@/constants/oauth";
 import { getSessionToken, getUserInfo, removeSessionToken, clearUserInfo } from "@/lib/_core/auth";
+import { deleteCloudAccount } from "@/lib/cloud-sync";
 
 type UserInfo = { name?: string; email?: string } | null;
 
@@ -17,6 +20,8 @@ export default function SettingsScreen() {
   const { data, updateSettings, resetWorkspace, pendingSyncCount, syncConflicts, isCloudSyncing, lastCloudSyncAt, cloudSyncError, syncNow, migrateLocalWorkspaceToCloud, eraseCloudBackup } = useWorkspace();
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [userInfo, setUserInfo] = useState<UserInfo>(null);
+  const [nativeAuthError, setNativeAuthError] = useState<string | null>(null);
+  const { entitlement, isPro, restorePurchases, openCustomerCenter } = useEntitlement();
 
   // Load auth state on mount
   useEffect(() => {
@@ -33,6 +38,14 @@ export default function SettingsScreen() {
   const handleSignIn = async () => {
     haptic.light(data.settings.hapticsEnabled);
     await startOAuthLogin();
+  };
+
+  const refreshNativeSession = async () => {
+    setNativeAuthError(null);
+    const token = await getSessionToken();
+    const info = await getUserInfo();
+    setSessionToken(token);
+    setUserInfo(info as UserInfo);
   };
 
   const handleSignOut = () => {
@@ -71,6 +84,30 @@ export default function SettingsScreen() {
       "Erase cloud backup?",
       "This permanently removes Skilltracker data stored in the cloud for this account. Data still stored on this phone will remain until you reset it separately.",
       [{ text: "Cancel", style: "cancel" }, { text: "Erase cloud backup", style: "destructive", onPress: () => { void eraseCloudBackup(); } }],
+    );
+  };
+
+  const confirmDeleteAccount = () => {
+    Alert.alert(
+      "Delete Skilltracker account?",
+      "This permanently deletes your cloud backup and Skilltracker account. It cannot be undone. Local data on this phone remains until you choose to reset it separately.",
+      [{ text: "Cancel", style: "cancel" }, { text: "Delete account", style: "destructive", onPress: () => {
+        Alert.alert("Final confirmation", "Delete your Skilltracker account permanently?", [
+          { text: "Keep account", style: "cancel" },
+          { text: "Delete permanently", style: "destructive", onPress: async () => {
+            try {
+              await deleteCloudAccount();
+              await removeSessionToken();
+              await clearUserInfo();
+              setSessionToken(null);
+              setUserInfo(null);
+              Alert.alert("Account deleted", "Your Skilltracker cloud account and backup have been deleted.");
+            } catch (error) {
+              Alert.alert("Could not delete account", error instanceof Error ? error.message : "Please try again when you are online.");
+            }
+          } },
+        ]);
+      } }],
     );
   };
 
@@ -118,6 +155,7 @@ export default function SettingsScreen() {
                 {userInfo?.email ? (
                   <Text style={styles.accountEmail}>{userInfo.email}</Text>
                 ) : null}
+                <TouchableOpacity onPress={() => router.push("/paywall?origin=settings" as never)} style={[styles.planBadge, isPro ? styles.planBadgePro : styles.planBadgeFree]}><Text style={[styles.planBadgeText, isPro ? styles.planBadgeTextPro : styles.planBadgeTextFree]}>{isPro ? "Skilltracker Pro" : "Free plan"}</Text></TouchableOpacity>
               </View>
               <View style={styles.accountActions}>
                 <AppButton
@@ -139,11 +177,20 @@ export default function SettingsScreen() {
                   Access your teams and assessments across devices.
                 </Text>
               </View>
-              <View style={styles.signInBtn}>
-                <AppButton label="Sign in" icon="arrow-forward" onPress={handleSignIn} />
+              <View style={styles.signInMethods}>
+                <NativeSignIn onSignedIn={() => { void refreshNativeSession(); }} onError={setNativeAuthError} />
+                {nativeAuthError ? <Text style={styles.nativeAuthError}>{nativeAuthError}</Text> : null}
+                <Text style={styles.orLabel}>or continue in browser</Text>
+                <AppButton label="Sign in with Skilltracker" icon="arrow-forward" onPress={handleSignIn} />
               </View>
             </AppCard>
           )}
+          <AppCard style={styles.proCard}>
+            <View style={styles.proIcon}><MaterialIcons name="workspace-premium" size={24} color={palette.primaryDark} /></View>
+            <View style={styles.proCopy}><Text style={styles.infoTitle}>{isPro ? "Skilltracker Pro" : "Get the full picture"}</Text><Text style={styles.infoBody}>{isPro ? "Manage your plan or restore purchases from another device." : "Keep season history, detailed tags, practice-to-pitch trends, and private device sync."}</Text></View>
+            <AppButton label={isPro ? "Manage" : "Explore Pro"} icon={isPro ? "settings" : "workspace-premium"} onPress={() => isPro ? void openCustomerCenter() : router.push("/paywall?origin=settings" as never)} />
+            {!isPro ? <TouchableOpacity onPress={() => void restorePurchases("settings")} style={styles.restoreInline}><Text style={styles.restoreText}>Restore purchases</Text></TouchableOpacity> : null}
+          </AppCard>
         </View>
 
         {/* ── Experience ───────────────────────────────────────────────── */}
@@ -203,6 +250,7 @@ export default function SettingsScreen() {
               {cloudSyncError ? <Text style={styles.errorText}>{cloudSyncError}</Text> : null}
               <AppButton label={isCloudSyncing ? "Syncing…" : lastCloudSyncAt ? "Sync now" : "Back up this device"} icon={lastCloudSyncAt ? "sync" : "cloud-upload"} onPress={lastCloudSyncAt ? handleSync : handleBackup} disabled={isCloudSyncing} />
               <AppButton label="Erase cloud backup" variant="destructive" icon="delete-outline" onPress={confirmEraseCloud} disabled={isCloudSyncing} />
+              <TouchableOpacity accessibilityRole="button" onPress={confirmDeleteAccount} style={styles.deleteAccountLink}><Text style={styles.deleteAccountLinkText}>Delete Skilltracker account</Text></TouchableOpacity>
             </AppCard>
           ) : null}
           <AppButton label="Reset demonstration data" variant="destructive" icon="restart-alt" onPress={confirmReset} />
@@ -241,13 +289,13 @@ const styles = StyleSheet.create({
   accountCopy: { flex: 1 },
   accountName: { color: palette.ink, fontSize: 15, lineHeight: 20, fontWeight: "700" },
   accountEmail: { color: palette.muted, fontSize: 12, lineHeight: 17, marginTop: 2 },
-  accountActions: { overflow: "hidden" },
+  accountActions: { overflow: "hidden" }, planBadge: { alignSelf: "flex-start", marginTop: 6, minHeight: 24, paddingHorizontal: 8, borderRadius: 999, justifyContent: "center" }, planBadgePro: { backgroundColor: palette.primarySoft }, planBadgeFree: { backgroundColor: palette.surfaceAlt }, planBadgeText: { fontSize: 11, fontWeight: "800" }, planBadgeTextPro: { color: palette.primaryDark }, planBadgeTextFree: { color: palette.muted },
   signInCard: { gap: 12 },
   signInIcon: { width: 46, height: 46, borderRadius: 15, backgroundColor: palette.primarySoft, alignItems: "center", justifyContent: "center" },
   signInCopy: {},
   signInTitle: { color: palette.ink, fontSize: 15, lineHeight: 20, fontWeight: "700" },
   signInBody: { color: palette.muted, fontSize: 13, lineHeight: 19, marginTop: 3 },
-  signInBtn: { overflow: "hidden" },
+  signInBtn: { overflow: "hidden" }, signInMethods: { width: "100%", gap: 8 }, nativeAuthError: { color: palette.coralDark, fontSize: 12, lineHeight: 17, fontWeight: "700" }, orLabel: { color: palette.muted, fontSize: 11, fontWeight: "800", textAlign: "center", letterSpacing: 0.3, marginTop: 2 },
   // Experience
   settingsCard: { paddingVertical: 6 },
   settingRow: { minHeight: 74, flexDirection: "row", alignItems: "center", gap: 12 },
@@ -261,7 +309,8 @@ const styles = StyleSheet.create({
   infoCopy: { flex: 1 },
   infoTitle: { color: palette.ink, fontSize: 15, lineHeight: 20, fontWeight: "700" },
   infoBody: { color: palette.muted, fontSize: 13, lineHeight: 19, marginTop: 3 },
-  cloudCard: { gap: 12 },
+  cloudCard: { gap: 12 }, deleteAccountLink: { minHeight: 44, alignItems: "center", justifyContent: "center" }, deleteAccountLinkText: { color: palette.coralDark, fontSize: 13, fontWeight: "800", textDecorationLine: "underline" },
+  proCard: { gap: 12 }, proIcon: { width: 44, height: 44, borderRadius: 15, backgroundColor: palette.primarySoft, alignItems: "center", justifyContent: "center" }, proCopy: { flex: 1 }, restoreInline: { minHeight: 44, alignItems: "flex-start", justifyContent: "center" }, restoreText: { color: palette.primaryDark, fontSize: 13, fontWeight: "800", textDecorationLine: "underline" },
   cloudHeader: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
   cloudIcon: { width: 44, height: 44, borderRadius: 15, backgroundColor: palette.primarySoft, alignItems: "center", justifyContent: "center" },
   cloudCopy: { flex: 1 },

@@ -1,9 +1,12 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Tabs } from "expo-router";
+import { View } from "react-native";
+import { LiveMatchMiniBar } from "@/components/live-match-mini-bar";
 import { palette } from "@/lib/palette";
 
 export default function TabLayout() {
   return (
+    <View style={{ flex: 1 }}>
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -60,5 +63,7 @@ export default function TabLayout() {
       />
       <Tabs.Screen name="squad" options={{ href: null }} />
     </Tabs>
+    <LiveMatchMiniBar />
+    </View>
   );
 }

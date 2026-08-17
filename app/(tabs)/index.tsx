@@ -39,6 +39,24 @@ export default function HomeScreen() {
     return strongestAndFocus(teamAverages as any);
   }, [teamAverages]);
   const recentAssessments = useMemo(() => [...data.assessments].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, 2), [data.assessments]);
+  const greeting = new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening";
+  const coachingStreak = useMemo(() => {
+    const days = new Set([...data.assessments.map((assessment) => assessment.createdAt.slice(0, 10)), ...data.matches.filter((match) => match.status === "completed").map((match) => match.matchDate.slice(0, 10))]);
+    let cursor = new Date(); let count = 0;
+    for (let index = 0; index < 30; index += 1) {
+      const key = cursor.toISOString().slice(0, 10);
+      if (!days.has(key)) break;
+      count += 1; cursor = new Date(cursor.getTime() - 86_400_000);
+    }
+    return count;
+  }, [data.assessments, data.matches]);
+  const continuation = activeMatch
+    ? { eyebrow: "LIVE NOW", title: `Continue vs ${activeMatch.opponent}`, body: "Your event log and pitch are ready when you are.", action: "Resume capture", route: { pathname: "/match/live/[id]", params: { id: activeMatch.id } } }
+    : upcomingMatch
+      ? { eyebrow: "NEXT MATCH", title: `Prepare for ${upcomingMatch.opponent}`, body: "Set your tactical focus before matchday.", action: "Open match setup", route: "/match/setup" }
+      : stalePlayers.length > 0
+        ? { eyebrow: "PLAYER DEVELOPMENT", title: `Review ${stalePlayers.length} player${stalePlayers.length === 1 ? "" : "s"}`, body: "A current development picture makes the next practice clearer.", action: "Open squad", route: "/(tabs)/team" }
+        : { eyebrow: "NEXT PRACTICE", title: "Turn today’s insight into a session", body: "Create one short practice focus for the team.", action: "Plan practice", route: "/practice/new" };
 
   const priority = players.length === 0
     ? { label: "GET STARTED", title: "Build your squad", body: "Add your first player, then begin tracking growth.", icon: "person-add" as const, action: "Add player" }
@@ -63,22 +81,23 @@ export default function HomeScreen() {
 
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 108 }]} showsVerticalScrollIndicator={false}>
         <View style={styles.teamIntro}>
-          <Text style={styles.kicker}>TODAY · {team?.ageGroup ?? "YOUR TEAM"}</Text>
+          <Text style={styles.greeting}>{greeting}</Text>
           <Text style={styles.teamTitle}>{team?.name ?? "Start your team"}</Text>
-          <View style={styles.teamMetaRow}>
-            <View style={styles.teamMetaDot} />
-            <Text style={styles.teamMeta}>{players.length} players in your coaching group</Text>
+          <View style={styles.contextRow}>
+            <View style={styles.contextChip}><MaterialIcons name="groups" size={14} color={palette.primaryDark} /><Text style={styles.contextText}>{team?.ageGroup ?? "Your team"}</Text></View>
+            <View style={styles.contextChip}><MaterialIcons name="people" size={14} color={palette.primaryDark} /><Text style={styles.contextText}>{players.length} players</Text></View>
+            {coachingStreak > 1 ? <View style={styles.streakChip}><MaterialIcons name="local-fire-department" size={14} color={palette.amberDark} /><Text style={styles.streakText}>{coachingStreak}-day rhythm</Text></View> : null}
           </View>
         </View>
 
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel={`${priority.action}: ${priority.title}`} activeOpacity={0.86} onPress={openPriority} style={styles.priorityCard}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel={`${continuation.action}: ${continuation.title}`} activeOpacity={0.86} onPress={() => { haptic(); router.push(continuation.route as any); }} style={styles.priorityCard}>
           <View style={styles.priorityTopline}>
-            <View style={styles.priorityLabelWrap}><View style={styles.priorityDot} /><Text style={styles.priorityLabel}>{priority.label}</Text></View>
-            <View style={styles.priorityIcon}><MaterialIcons name={priority.icon} size={21} color="#63D6AE" /></View>
+            <View style={styles.priorityLabelWrap}><View style={styles.priorityDot} /><Text style={styles.priorityLabel}>{continuation.eyebrow}</Text></View>
+            <View style={styles.priorityIcon}><MaterialIcons name={activeMatch ? "play-arrow" : "arrow-forward"} size={21} color="#63D6AE" /></View>
           </View>
-          <Text style={styles.priorityTitle}>{priority.title}</Text>
-          <Text style={styles.priorityBody}>{priority.body}</Text>
-          <View style={styles.priorityAction}><Text style={styles.priorityActionText}>{priority.action}</Text><MaterialIcons name="arrow-forward" size={18} color="#FFFFFF" /></View>
+          <Text style={styles.priorityTitle}>{continuation.title}</Text>
+          <Text style={styles.priorityBody}>{continuation.body}</Text>
+          <View style={styles.priorityAction}><Text style={styles.priorityActionText}>{continuation.action}</Text><MaterialIcons name="arrow-forward" size={18} color="#FFFFFF" /></View>
         </TouchableOpacity>
 
         <SectionLead eyebrow="MATCHDAY" title="Coach the game" detail={activeMatch ? "A match is live" : upcomingMatch ? `Next: ${upcomingMatch.opponent}` : "No match scheduled"} />
@@ -154,10 +173,11 @@ const styles = StyleSheet.create({
   wordmark: { ...typography.pageTitle, color: palette.ink, letterSpacing: -0.8 },
   settingsButton: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border },
   content: { paddingHorizontal: spacing.base, paddingTop: spacing.sm, gap: 18 },
-  teamIntro: { gap: 3, paddingTop: 2 },
+  teamIntro: { gap: 6, paddingTop: 2 }, greeting: { ...typography.bodyMed, color: palette.muted },
   kicker: { ...typography.eyebrow, color: palette.primaryDark, letterSpacing: 1.3 },
   teamTitle: { ...typography.displayMd, color: palette.ink, letterSpacing: -0.8 },
   teamMetaRow: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 2 },
+  contextRow: { flexDirection: "row", flexWrap: "wrap", gap: 7, marginTop: 2 }, contextChip: { minHeight: 30, borderRadius: radius.full, paddingHorizontal: 9, gap: 5, flexDirection: "row", alignItems: "center", backgroundColor: palette.primarySoft }, contextText: { color: palette.primaryDark, fontSize: 12, fontWeight: "800" }, streakChip: { minHeight: 30, borderRadius: radius.full, paddingHorizontal: 9, gap: 5, flexDirection: "row", alignItems: "center", backgroundColor: palette.amberSoft }, streakText: { color: palette.amberDark, fontSize: 12, fontWeight: "800" },
   teamMetaDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: palette.primary },
   teamMeta: { ...typography.caption, color: palette.muted },
   priorityCard: { backgroundColor: palette.navy, borderRadius: radius.xl, padding: spacing.base, gap: 7, borderWidth: 1, borderColor: palette.navyBorder, shadowColor: "#0D2137", shadowOpacity: 0.16, shadowRadius: 14, shadowOffset: { width: 0, height: 7 }, elevation: 3 },

@@ -1,11 +1,9 @@
 import * as Linking from "expo-linking";
 import * as ReactNative from "react-native";
 
-// Extract scheme from bundle ID (last segment timestamp, prefixed with "manus")
-// e.g., "space.manus.my.app.t20240115103045" -> "manus20240115103045"
-const bundleId = "com.app.tactiqmobile";
-const timestamp = bundleId.split(".").pop()?.replace(/^t/, "") ?? "";
-const schemeFromBundleId = `manus${timestamp}`;
+// Keep the browser OAuth fallback aligned with the native app config. The prior
+// generated Manus scheme no longer belongs to the published Skilltracker app.
+const schemeFromBundleId = "tactiqcoach";
 
 const env = {
   portal: process.env.EXPO_PUBLIC_OAUTH_PORTAL_URL ?? "",

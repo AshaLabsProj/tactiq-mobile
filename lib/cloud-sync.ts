@@ -52,6 +52,10 @@ export async function eraseCloudWorkspace() {
   return call<{ success: true }>("mobileSync.eraseWorkspace", { confirmation: "DELETE MOBILE DATA" });
 }
 
+export async function deleteCloudAccount() {
+  return call<{ success: true }>("mobileSync.deleteAccount", { confirmation: "DELETE MY SKILLTRACKER ACCOUNT" });
+}
+
 function snapshotEntity(entity: WorkspaceEntity, records: Array<{ id: string }>): SyncMutation[] {
   return records.map((record) => ({ id: `migration-${entity}-${record.id}`, entity, operation: "upsert" as const, recordId: record.id, payload: record as unknown as Record<string, unknown>, createdAt: new Date().toISOString(), retryCount: 0 }));
 }

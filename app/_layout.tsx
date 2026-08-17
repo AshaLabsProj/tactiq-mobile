@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { EntitlementProvider } from "@/contexts/entitlement-context";
 import { WorkspaceProvider } from "@/contexts/workspace-context";
 import { palette } from "@/lib/palette";
 
@@ -13,23 +14,26 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: palette.background }}>
       <SafeAreaProvider>
         <WorkspaceProvider>
-          <StatusBar style="dark" />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              animation: "slide_from_right",
-              contentStyle: { backgroundColor: palette.background },
-            }}
-          >
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="assessment" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
-            <Stack.Screen name="assessment-qa" options={{ presentation: "modal", animation: "slide_from_bottom", gestureEnabled: true }} />
-            <Stack.Screen name="match/setup" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
-            <Stack.Screen name="match/live/[id]" options={{ gestureEnabled: false }} />
-            <Stack.Screen name="match/summary/[id]" />
-            <Stack.Screen name="player/[id]/index" />
-            <Stack.Screen name="settings" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
-          </Stack>
+          <EntitlementProvider>
+            <StatusBar style="dark" />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                animation: "slide_from_right",
+                contentStyle: { backgroundColor: palette.background },
+              }}
+            >
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="assessment" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
+              <Stack.Screen name="assessment-qa" options={{ presentation: "modal", animation: "slide_from_bottom", gestureEnabled: true }} />
+              <Stack.Screen name="match/setup" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
+              <Stack.Screen name="match/live/[id]" options={{ gestureEnabled: false }} />
+              <Stack.Screen name="match/summary/[id]" />
+              <Stack.Screen name="player/[id]/index" />
+              <Stack.Screen name="settings" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
+              <Stack.Screen name="paywall" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
+            </Stack>
+          </EntitlementProvider>
         </WorkspaceProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

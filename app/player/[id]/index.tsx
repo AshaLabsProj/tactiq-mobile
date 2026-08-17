@@ -30,6 +30,7 @@ import {
   StrengthCard,
 } from "@/components/ui";
 import { useWorkspace } from "@/contexts/workspace-context";
+import { useEntitlement } from "@/contexts/entitlement-context";
 import {
   assessmentsForPlayer,
   averageRatings,
@@ -37,7 +38,7 @@ import {
   latestAssessmentForPlayer,
   strongestAndFocus,
 } from "@/lib/insights";
-import { playerTransferSignal } from "@/lib/transfer";
+import { playerMatchTransferTrend, playerTransferSignal } from "@/lib/transfer";
 import { palette, radius, spacing, typography } from "@/lib/palette";
 import type { SkillKey } from "@/types/models";
 import { SKILL_LABELS } from "@/types/models";
@@ -77,6 +78,7 @@ const SKILL_CUES: Record<SkillKey, { strong: string; focus: string }> = {
 export default function PlayerProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data, saveFocusGoal, updateFocusGoalStatus } = useWorkspace();
+  const { isPro, gate } = useEntitlement();
   const insets = useSafeAreaInsets();
   const haptic = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
@@ -96,6 +98,7 @@ export default function PlayerProfileScreen() {
   const team = player ? data.teams.find((t) => t.id === player.teamId) : undefined;
   const activeGoal = player ? data.focusGoals.find((goal) => goal.playerId === player.id && goal.status === "active") : undefined;
   const transfer = player && focus ? playerTransferSignal(player.id, focus, data.assessments, data.matchEvents) : null;
+  const transferTrend = player && focus ? playerMatchTransferTrend(player.id, focus, data.matches, data.matchEvents).slice(-3) : [];
 
   const handleShare = async () => {
     haptic();
@@ -213,7 +216,14 @@ export default function PlayerProfileScreen() {
                     </View>
                     <View style={styles.transferCounts}><Text style={styles.transferCount}>{transfer.positiveEvents}</Text><Text style={styles.transferCountLabel}>positive</Text></View>
                   </View>
-                  <Text style={styles.transferBody}>{transfer.summary}</Text>
+                  <Text style={styles.transferBody}>{isPro ? transfer.summary : "Pro reveals the full trend, baseline and match-by-match transfer evidence."}</Text>
+                  {!isPro ? (
+                    <TouchableOpacity onPress={() => router.push("/paywall?origin=player-transfer" as never)} style={styles.transferUpgrade} accessibilityRole="button">
+                      <MaterialIcons name="workspace-premium" size={16} color={palette.primaryDark} />
+                      <Text style={styles.transferUpgradeText}>Explore Pro transfer evidence</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                  {isPro && transferTrend.length ? <View style={styles.matchTrendRow}>{transferTrend.map((point) => <View key={point.matchId} style={styles.matchTrendPoint}><Text style={styles.matchTrendDate}>{new Date(point.matchDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</Text><Text style={[styles.matchTrendValue, point.comparedToBaseline === "above" && styles.matchTrendPositive, point.comparedToBaseline === "below" && styles.matchTrendWatch]}>{point.comparedToBaseline === "insufficient" ? "—" : point.netScore > 0 ? `+${point.netScore}` : point.netScore}</Text><Text style={styles.matchTrendCaption}>{point.taggedEvents >= 3 ? "vs base" : "more tags"}</Text></View>)}</View> : null}
                 </View>
               </View>
             ) : null}
@@ -228,7 +238,14 @@ export default function PlayerProfileScreen() {
                     <TouchableOpacity accessibilityRole="button" accessibilityLabel="Mark focus goal achieved" activeOpacity={0.8} onPress={() => updateFocusGoalStatus(activeGoal.id, "achieved")} style={styles.goalDoneButton}><MaterialIcons name="check" size={18} color="#0F6B50" /></TouchableOpacity>
                   </View>
                 ) : (
-                  <TouchableOpacity accessibilityRole="button" activeOpacity={0.8} onPress={() => saveFocusGoal({ playerId: player.id, skill: focus, note: SKILL_CUES[focus].focus, setAt: new Date().toISOString(), status: "active" })} style={styles.setGoalButton}>
+                  <TouchableOpacity accessibilityRole="button" activeOpacity={0.8} onPress={() => {
+                    const access = gate("extra-focus-goal", "player-focus-goal");
+                    if (!access.allowed && data.focusGoals.filter((goal) => goal.status === "active").length >= 1) {
+                      router.push("/paywall?origin=player-focus-goal" as never);
+                      return;
+                    }
+                    saveFocusGoal({ playerId: player.id, skill: focus, note: SKILL_CUES[focus].focus, setAt: new Date().toISOString(), status: "active" });
+                  }} style={styles.setGoalButton}>
                     <MaterialIcons name="add" size={20} color="#FFFFFF" /><Text style={styles.setGoalText}>Set {SKILL_LABELS[focus]} focus goal</Text>
                   </TouchableOpacity>
                 )}
@@ -345,6 +362,9 @@ const styles = StyleSheet.create({
   transferCount: { color: palette.primaryDark, fontSize: 18, fontWeight: "900" },
   transferCountLabel: { color: palette.primaryDark, fontSize: 9, fontWeight: "800", textTransform: "uppercase" },
   transferBody: { ...typography.caption, color: palette.primaryDark, lineHeight: 18 },
+  transferUpgrade: { minHeight: 44, borderRadius: radius.md, backgroundColor: "rgba(255,255,255,0.72)", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: spacing.sm },
+  transferUpgradeText: { color: palette.primaryDark, fontSize: 12, fontWeight: "800" },
+  matchTrendRow: { flexDirection: "row", gap: 7 }, matchTrendPoint: { flex: 1, alignItems: "center", gap: 2, paddingVertical: 8, borderRadius: radius.md, backgroundColor: "rgba(255,255,255,0.65)" }, matchTrendDate: { color: palette.primaryDark, fontSize: 10, fontWeight: "800" }, matchTrendValue: { color: palette.ink, fontSize: 16, fontWeight: "900", fontVariant: ["tabular-nums"] as any }, matchTrendPositive: { color: palette.primaryDark }, matchTrendWatch: { color: palette.coralDark }, matchTrendCaption: { color: palette.muted, fontSize: 9, fontWeight: "700" },
   goalSection: { gap: spacing.sm },
   goalCard: { flexDirection: "row", alignItems: "center", gap: spacing.sm, padding: spacing.md, borderRadius: radius.lg, backgroundColor: palette.amberSoft, borderWidth: 1, borderColor: "#F7D68E" },
   goalIcon: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.7)" },
