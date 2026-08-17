@@ -45,3 +45,4 @@
 - [x] Remove the duplicate light-only native appearance setting that overrides automatic dark-mode support
 - [x] Publish the precise RevenueCat, App Store Connect, webhook, and sandbox-purchase setup handoff for Skilltracker Pro
 - [x] Add privacy-minimized, offline-safe mobile subscription event delivery for the founder-only Mobile Operations dashboard
+- [x] Switch the iOS RevenueCat adapter from the temporary Test Store key to the connected Apple App Store public SDK key

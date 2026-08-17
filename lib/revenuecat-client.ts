@@ -18,7 +18,7 @@ export const ANNUAL_PRODUCT_ID = "skilltracker_pro_annual";
 
 // RevenueCat public SDK keys are intentionally client-side. They only identify
 // the app/project; private API and webhook keys remain server-side.
-const IOS_PUBLIC_KEY = process.env.EXPO_PUBLIC_REVENUECAT_APPLE_API_KEY ?? "test_urzRcrxrERFFQfWJYcCFpdcsSTH";
+const IOS_PUBLIC_KEY = process.env.EXPO_PUBLIC_REVENUECAT_APPLE_API_KEY ?? "appl_UtrcmquEdSKQsHiLjwPjbusAORM";
 const ANDROID_PUBLIC_KEY = process.env.EXPO_PUBLIC_REVENUECAT_GOOGLE_API_KEY ?? "";
 
 function productForIdentifier(identifier?: string): SubscriptionProduct | undefined {
