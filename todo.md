@@ -43,3 +43,4 @@
 - [x] Add Sign in with Apple, Android Google sign-in, compliant in-app account deletion, and mobileSync server source-of-truth integration tests
 - [ ] Finalize permanent Skilltracker store identity, dark-mode/responsive/reduce-motion QA, subscription privacy disclosures, reviewer sandbox notes, and store builds
 - [x] Remove the duplicate light-only native appearance setting that overrides automatic dark-mode support
+- [x] Publish the precise RevenueCat, App Store Connect, webhook, and sandbox-purchase setup handoff for Skilltracker Pro
