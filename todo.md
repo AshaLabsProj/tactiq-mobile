@@ -44,3 +44,4 @@
 - [ ] Finalize permanent Skilltracker store identity, dark-mode/responsive/reduce-motion QA, subscription privacy disclosures, reviewer sandbox notes, and store builds
 - [x] Remove the duplicate light-only native appearance setting that overrides automatic dark-mode support
 - [x] Publish the precise RevenueCat, App Store Connect, webhook, and sandbox-purchase setup handoff for Skilltracker Pro
+- [x] Add privacy-minimized, offline-safe mobile subscription event delivery for the founder-only Mobile Operations dashboard

@@ -16,6 +16,13 @@ export type CloudRecord = {
 
 type TrpcResponse<T> = { result?: { data?: { json?: T } }; error?: { json?: { message?: string } } };
 
+export type MobileOperationalEventInput = {
+  id: string;
+  name: "app_opened" | "cloud_account_connected" | "paywall_viewed" | "paywall_dismissed" | "purchase_started" | "purchase_completed" | "purchase_cancelled" | "restore_started" | "restore_completed" | "gate_encountered";
+  occurredAt: string;
+  metadata?: Record<string, string | number | boolean>;
+};
+
 async function call<T>(procedure: string, input?: unknown, method: "GET" | "POST" = "POST"): Promise<T> {
   const token = await Auth.getSessionToken();
   if (!token) throw new Error("Sign in to sync your workspace.");
@@ -54,6 +61,12 @@ export async function eraseCloudWorkspace() {
 
 export async function deleteCloudAccount() {
   return call<{ success: true }>("mobileSync.deleteAccount", { confirmation: "DELETE MY SKILLTRACKER ACCOUNT" });
+}
+
+/** Sends small, de-identified operational events to Skilltracker. The server deduplicates by event ID. */
+export async function cloudRecordMobileOperationalEvents(events: MobileOperationalEventInput[]) {
+  if (!events.length) return { recorded: 0 };
+  return call<{ recorded: number }>("mobileOperations.ingest", { events });
 }
 
 function snapshotEntity(entity: WorkspaceEntity, records: Array<{ id: string }>): SyncMutation[] {

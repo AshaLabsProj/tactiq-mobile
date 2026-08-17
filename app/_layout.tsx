@@ -2,14 +2,20 @@ import "../global.css";
 
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { EntitlementProvider } from "@/contexts/entitlement-context";
 import { WorkspaceProvider } from "@/contexts/workspace-context";
 import { palette } from "@/lib/palette";
+import { logSubscriptionEvent } from "@/lib/subscription-events";
 
 export default function RootLayout() {
+  useEffect(() => {
+    void logSubscriptionEvent("app_opened", "root");
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: palette.background }}>
       <SafeAreaProvider>

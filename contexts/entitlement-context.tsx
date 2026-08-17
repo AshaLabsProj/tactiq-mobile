@@ -12,7 +12,7 @@ import {
 } from "@/lib/entitlements";
 import { RevenueCatEntitlementClient } from "@/lib/revenuecat-client";
 import { type GateResult, type ProFeature, gateForFeature } from "@/lib/feature-gates";
-import { logSubscriptionEvent } from "@/lib/subscription-events";
+import { flushSubscriptionEvents, logSubscriptionEvent } from "@/lib/subscription-events";
 
 interface EntitlementContextValue {
   entitlement: EntitlementSnapshot;
@@ -70,6 +70,7 @@ export function EntitlementProvider({ children, client }: { children: ReactNode;
       .initialize()
       .then(async () => {
         await Promise.all([refreshEntitlement(), refreshOffers()]);
+        void flushSubscriptionEvents();
       })
       .finally(() => {
         if (mounted) setIsLoading(false);
